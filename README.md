@@ -1,0 +1,1 @@
+REON is an expressive data format based on [Red](https://www.red-lang.org/) and [Rebol](http://www.rebol.com/) syntax that can be translated to/from JSON.

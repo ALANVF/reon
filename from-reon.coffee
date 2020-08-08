@@ -280,6 +280,9 @@ normalizeStringy = (string) ->
 					when string[0] is "\t"
 						out += "\\t"
 						1
+					when string[0] is '"'
+						out += '\\"'
+						1
 					when string.length < 2
 						out += string
 						string.length

@@ -1,6 +1,6 @@
 {
 	"name": "reon",
-	"version": "0.0.1",
+	"version": "0.0.2",
 	"description": "Convert between JSON and Red/Rebol object notation",
 	"main": "index.js",
 	"scripts": {

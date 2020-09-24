@@ -3,6 +3,7 @@
 	"version": "0.0.2",
 	"description": "Convert between JSON and Red/Rebol object notation",
 	"main": "index.js",
+	"bin": "./bin/reon",
 	"scripts": {
 		"build": "coffee -t -c -o out index.coffee from-reon.coffee to-reon.coffee && (echo \"#!/usr/bin/env node\" && echo \"require(\\\"./index.js\\\");\") > out/reon",
 		"build-windows": "coffee -t -c -o out index.coffee from-reon.coffee to-reon.coffee && (echo #!/usr/bin/env node && echo require(\"./index.js\"^); ) > out/reon"

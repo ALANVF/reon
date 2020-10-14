@@ -161,9 +161,6 @@ nextLiteral = (reader) ->
 				when reader.match "^{" then "{"
 				when reader.match "^}" then "}"
 				when reader.match "^^" then "^^"
-				when reader.match "\n" then "\\n"
-				when reader.match "\r" then "\\r"
-				when reader.match "\t" then "\\t"
 				else                        reader.next()
 		
 		if level is 0

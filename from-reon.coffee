@@ -161,6 +161,9 @@ nextLiteral = (reader) ->
 				when reader.match "^{" then "{"
 				when reader.match "^}" then "}"
 				when reader.match "^^" then "^^"
+				when reader.match "\n" then "\\n"
+				when reader.match "\r" then "\\r"
+				when reader.match "\t" then "\\t"
 				else                        reader.next()
 		
 		if level is 0
@@ -269,6 +272,9 @@ normalizeStringy = (string) ->
 					when str.startsWith "^(esc)"  then out += "\\x1B"; 6
 					when str.startsWith "^(del)"  then out += "\\x7F"; 6
 					else                               throw new Error "Invalid char!"
+			when "\r\n"
+				out += "\\r\\n"
+				2
 			else
 				switch
 					when string[0] is "\\"
@@ -276,6 +282,9 @@ normalizeStringy = (string) ->
 						1
 					when string[0] is "\n"
 						out += "\\n"
+						1
+					when string[0] is "\r"
+						out += "\\r"
 						1
 					when string[0] is "\t"
 						out += "\\t"

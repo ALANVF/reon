@@ -1,0 +1,8 @@
+{
+	"a": 123,
+	"b-c": 123.456,
+	"d": ["$121", "1-Jan-2020", "banana"],
+	"e": {
+		"a b c": "\n\t\t\tdef\n\t\t\t{\n\t\t\t\thgi\n\t\t\t}\n\t\t\t}\n\t\t\t{\n\t\t"
+	}
+}

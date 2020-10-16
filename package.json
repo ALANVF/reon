@@ -5,7 +5,7 @@
 	"main": "index.js",
 	"bin": "./bin/reon",
 	"scripts": {
-		"build": "coffee -t -c -o out index.coffee from-reon.coffee to-reon.coffee"
+		"build": "coffee -t -c -o out src/index.coffee src/from-reon.coffee src/to-reon.coffee"
 	},
 	"author": "theangryepicbanana",
 	"license": "",

@@ -383,4 +383,8 @@ makeValue = (indent, token) ->
 		else                           makeString token
 
 export default fromREON = (input) ->
-	makeValue 0, nextValue new Reader input
+	reader = new Reader input
+	
+	trimSpace reader
+	
+	return makeValue 0, nextValue reader

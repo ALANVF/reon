@@ -1,0 +1,29 @@
+#!/usr/bin/env perl
+use strict;
+use warnings;
+use experimental 'say';
+
+$|++;
+
+unless(`pwd` =~ m/\/test\/?$/) {
+	chdir "test"
+}
+
+my @dirs = grep {-d $_} split "\n", `ls`;
+
+my $max_dir_len = (sort {$b <=> $a} map length, @dirs)[0];
+
+for my $dir (@dirs) {
+	my ($in, $out) = sub {(-f "$dir/input.reon") ? @_ : reverse @_}->("reon", "json");
+	my $in_file = "$dir/input.$in";
+
+	if(-f $in_file) {
+		if(`../bin/reon to-json $in_file -o output` =~ m/^Wrote to .+$/) {
+			say sprintf("PASSED: \%-${max_dir_len}s ($in -> $out)", $dir)
+		} else {
+			die "FAILED: $dir"
+		}
+	} else {
+		die "???"
+	}
+}

@@ -1,11 +1,12 @@
 {
 	"name": "reon",
-	"version": "0.0.4",
+	"version": "0.1.0",
 	"description": "Convert between JSON and Red/Rebol object notation",
 	"main": "index.js",
 	"bin": "./bin/reon",
 	"scripts": {
-		"build": "coffee -t -c -o out src/index.coffee src/from-reon.coffee src/to-reon.coffee"
+		"build": "coffee -tco out src",
+		"run-tests": "test/run-tests"
 	},
 	"author": "theangryepicbanana",
 	"license": "",

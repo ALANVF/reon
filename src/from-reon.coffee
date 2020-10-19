@@ -1,3 +1,8 @@
+import Token, {Value, nameOfToken} from "./to-reon/token.js"
+import Env from "./to-reon/env.js"
+import Intrinsics from "./to-reon/intrinsics.js"
+import * as Eval from "./to-reon/eval.js"
+
 digits = "(?:\\d+(?:'\\d+)*)"
 wordBase = /[^\d/\\,()[\]{}"'#%$@:;\s][^/\\,()[\]{}"#%$@:;\s]*/.source
 comment = /;[^\n]*(?:\n|$)/m
@@ -108,7 +113,7 @@ class Reader
 		@input[@pos..].slice offset, length
 	
 	eof: ->
-		@pos >= @input.length - 1
+		@pos >= @input.length
 	
 	line: ->
 		@cachedLine = @input[..@pos].split(/\r\n?|\n/).length
@@ -132,11 +137,11 @@ class Reader
 		throw new Error "Syntax Error: near #{line}:#{column}: #{message}"
 
 
-Object.fromEntries = (arr) ->
+Object.fromEntries ?= (arr) ->
 	Object.assign {}, ...Array.from(arr, ([k, v]) => [k]: v)
 
 
-trimSpace = (reader) ->
+trimSpace = (reader) =>
 	if reader.match /\s+/m
 		if reader.match comment
 			trimSpace reader
@@ -148,7 +153,7 @@ trimSpace = (reader) ->
 		else
 			false
 
-nextLiteral = (reader) ->
+nextLiteral = (reader) =>
 	if reader.match "{"
 		out = ""
 		level = 1
@@ -165,37 +170,54 @@ nextLiteral = (reader) ->
 				else                        reader.next()
 		
 		if level is 0
-			return string: out[...-1]
+			return Value.string out[...-1]
 		else
 			reader.error "Unexpected EOF, was expecting `}` instead! (starting at #{line}:#{column})"
 	
+	if reader.match "("
+		values = []
+		line = reader.line()
+		column = reader.column()
+
+		trimSpace reader
+
+		until reader.eof() or reader.peek() is ")"
+			values.push nextToken reader
+			trimSpace reader
+		
+		if reader.eof() or reader.peek() isnt ")"
+			reader.error "Unexpected EOF, was expecting `)` instead! (starting at #{line}:#{column})"
+		else
+			reader.next()
+			return Value.paren values
+	
 	for literal in ["string", "hexa", "file", "char"]
 		if match = reader.match literals[literal]
-			return [literal]: match[1]
+			return Value[literal] match[1]
 	
 	for literal in ["integer", "float"]
 		if match = reader.match literals[literal]
-			return [literal]: match.groups
+			return Value[literal] match.groups
 	
 	for literal in ["none", "logic", "money", "tuple", "issue", "ref", "email", "url", "time", "pair", "date", "tag"]
 		if match = reader.match literals[literal]
-			return [literal]: match[0]
+			return Value[literal] match[0]
 	
 	null
 
-nextKey = (reader) ->
+nextKey = (reader) =>
 	for literal in ["litWord", "getWord", "setWord"]
 		if match = reader.match literals[literal]
-			return [literal]: match[1]
+			return Value[literal] match[1]
 	
 	if match = reader.match literals.word
-		word: match[0]
-	else if literal = nextLiteral reader
+		Value.word match[0]
+	else if (literal = nextLiteral reader)?
 		literal
 	else
 		reader.error "Invalid key!"
 
-nextValue = (reader) ->
+nextValue = (reader, allowWord = false) =>
 	switch
 		when reader.match "["
 			values = []
@@ -205,14 +227,14 @@ nextValue = (reader) ->
 			trimSpace reader
 
 			until reader.eof() or reader.peek() is "]"
-				values.push nextValue reader
+				values.push nextValue(reader, allowWord)
 				trimSpace reader
 			
-			if reader.peek() isnt "]"
+			if reader.eof() or reader.peek() isnt "]"
 				reader.error "Unexpected EOF, was expecting `]` instead! (starting at #{line}:#{column})"
 			else
 				reader.next()
-				block: values
+				Value.block values
 		
 		when reader.match "#("
 			pairs = []
@@ -224,25 +246,35 @@ nextValue = (reader) ->
 			until reader.eof() or reader.peek() is ")"
 				key = nextKey reader
 				trimSpace reader
-				value = nextValue reader
+				value = nextValue(reader, allowWord)
 				trimSpace reader
 				pairs.push [key, value]
-				
 			
-			if reader.peek() isnt ")"
+			if reader.eof() or reader.peek() isnt ")"
 				reader.error "Unexpected EOF, was expecting `)` instead! (starting at #{line}:#{column})"
 			else
 				reader.next()
-				map: pairs
+				Value.map pairs
 		
 		when (literal = nextLiteral reader)?
 			literal
 		
 		else
+			if allowWord
+				for literal in ["litWord", "getWord", "setWord"]
+					if match = reader.match literals[literal]
+						return Value[literal] match[1]
+				
+				if match = reader.match literals.word
+					return Value.word match[0]
+
 			reader.error "Invalid value near `#{reader.peek()}`!"
 
+nextToken = (reader) =>
+	nextValue(reader, true)
 
-normalizeStringy = (string) ->
+
+normalizeStringy = (string) =>
 	out = ""
 
 	while string.length > 0
@@ -310,16 +342,17 @@ normalizeStringy = (string) ->
 	
 	out
 
-makeObject = (indent, pairs) ->
+
+makeObject = (indent, pairs) =>
 	return "{}" if pairs.length is 0
 
 	tabs = "\t".repeat indent + 1
 	kv = for [k, v] in pairs
-		[[_k, _v]] = Object.entries k
+		[_k, _v] = k
 		key = switch _k
-			when "word", "litWord", "getWord", "setWord"
+			when Token.word, Token.litWord, Token.getWord, Token.setWord
 				'"' + _v + '"'
-			when "integer", "float", "hexa"
+			when Token.integer, Token.float, Token.hexa
 				'"' + makeValue(0, k) + '"'
 			else
 				makeValue 0, k
@@ -328,13 +361,13 @@ makeObject = (indent, pairs) ->
 	
 	"{#{kv.join ","}\n#{"\t".repeat indent}}"
 
-makeArray = (indent, values) ->
+makeArray = (indent, values) =>
 	return "[]" if values.length is 0
 
 	vals = for value in values
 		makeValue indent + 1, value
 	
-	if vals.length > 10 or vals.some (str) => "\n" in str or str.length > 80
+	if vals.length > 10 or vals.some((str) => "\n" in str or str.length > 80)
 		tabs = "\t".repeat indent + 1
 		vals = for value in vals
 			"\n" + tabs + value
@@ -343,48 +376,95 @@ makeArray = (indent, values) ->
 	else
 		"[#{vals.join ", "}]"
 
-makeString = (stringy) ->
-	[[token, value]] = Object.entries stringy
-	switch token
-		when "file", "char", "string", "tag", "url"
+makeString = ([kind, value]) =>
+	switch kind
+		when Token.file, Token.char, Token.string, Token.tag, Token.url
 			'"' + normalizeStringy(value) + '"'
-		when "money", "tuple", "issue", "ref", "email", "time", "pair", "date"
+		when Token.money, Token.tuple, Token.issue, Token.ref, Token.email, Token.time, Token.pair, Token.date
 			'"' + value + '"'
 
-makeBoolean = (logic) ->
+makeBoolean = (logic) =>
 	if logic.toLowerCase() in ["true", "yes", "on"]
 		"true"
 	else
 		"false"
 
-makeInteger = (sign, number, exp) ->
+makeInteger = (sign, number, exp) =>
 	sign = "" if sign isnt "-"
 	number = number.replace /'/g, ""
 	"#{sign}#{number}#{expr ? ""}"
 
-makeHexa = (hexa) ->
+makeHexa = (hexa) =>
 	parseInt(hexa).toString()
 
-makeFloat = (sign, ipart, fpart, exp) ->
+makeFloat = (sign, ipart, fpart, exp) =>
 	sign = "" if sign isnt "-"
 	ipart = ipart.replace /'/g, ""
 	fpart = fpart.replace /'/g, ""
 	"#{sign}#{ipart}.#{fpart}#{exp ? ""}"
 
-makeValue = (indent, token) ->
-	switch
-		when token.map?           then makeObject indent, token.map
-		when token.block?         then makeArray indent, token.block
-		when (i = token.integer)? then makeInteger i.sign, i.number, i.exp
-		when token.hexa?          then makeHexa token.hexa
-		when (f = token.float)?   then makeFloat f.sign, f.ipart, f.fpart, f.exp
-		when token.logic?         then makeBoolean token.logic
-		when token.none?          then "null"
-		else                           makeString token
+makeValue = (indent, token) =>
+	[kind, value] = token
+	switch kind
+		when Token.map then makeObject indent, value
+		when Token.block then makeArray indent, value
+		when Token.integer then makeInteger value.sign, value.number, value.exp
+		when Token.hexa then makeHexa value
+		when Token.float then makeFloat value.sign, value.ipart, value.fpart, value.exp
+		when Token.logic then makeBoolean value
+		when Token.none then "null"
+		when Token.paren then throw new Error "Unexpected paren!"
+		else makeString token
 
-export default fromREON = (input) ->
+makeTokenValue = (indent, [kind, value]) =>
+	switch kind
+		when Token.map then makeObject indent, value
+		when Token.block then makeArray indent, value
+		when Token.integer then "#{value}"
+		when Token.hexa then makeHexa value
+		when Token.float then "#{value}"
+		when Token.logic then "#{value}"
+		when Token.none then "null"
+		when Token.paren then throw new Error "Unexpected paren!"
+		else '"' + value + '"'
+
+toValueToken = (token) =>
+	[kind, value] = token
+	[kind, switch kind
+		when Token.block, Token.paren                       then value.map(toValueToken)
+		when Token.map                                      then pair.map(toValueToken) for pair in value
+		when Token.integer                                  then parseInt makeInteger(value.sign, value.number, value.exp), 10
+		when Token.hexa                                     then parseInt value
+		when Token.float                                    then parseFloat makeFloat(value.sign, value.ipart, value.fpart, value.exp)
+		when Token.logic                                    then value.toLowerCase() in ["true", "yes", "on"]
+		when Token.none                                     then null
+		when Token.char                                     then normalizeStringy(value).charCodeAt 0
+		when Token.file, Token.string, Token.tag, Token.url then normalizeStringy(value)
+		else                                                value]
+
+
+export default fromREON = (input) =>
 	reader = new Reader input
 	
 	trimSpace reader
-	
-	return makeValue 0, nextValue reader
+
+	return if reader.match literals.setWord, false
+		env = new Env env: Intrinsics
+		tokens = until (trimSpace reader; reader.eof())
+			toValueToken(nextToken reader)
+		
+		mainValue = tokens.pop()
+
+		throw new TypeError "Unexpected #{nameOfToken mainValue[0]}" if mainValue[0] isnt Token.map
+		
+		Eval.evalTokens env, tokens
+		
+		mainValue = Intrinsics["compose.deep"].fn(env, [mainValue])
+		_makeValue = makeValue
+		makeValue = makeTokenValue
+		res = makeValue 0, mainValue
+		makeValue = _makeValue
+		
+		res
+	else
+		makeValue 0, nextValue reader

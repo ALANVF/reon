@@ -1,0 +1,10 @@
+value1: 1
+value2: 2.3
+#(
+	a (value1)
+	(value2) 2
+	c [
+		(value1)
+		(value2)
+	]
+)

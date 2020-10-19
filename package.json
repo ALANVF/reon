@@ -6,7 +6,8 @@
 	"bin": "./bin/reon",
 	"scripts": {
 		"build": "coffee -tco out src",
-		"run-tests": "test/run-tests"
+		"run-tests": "test/run-tests",
+		"run-tests-win": "powershell test/run-tests.ps1"
 	},
 	"author": "theangryepicbanana",
 	"license": "",

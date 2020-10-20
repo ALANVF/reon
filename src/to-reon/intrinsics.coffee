@@ -216,7 +216,7 @@ toLogic = ([valueK, valueV]) =>
 		else                  true
 
 $not = (_, [value]) =>
-	Value.logic toLogic value
+	Value.logic not toLogic value
 
 $and = (_, [left, right]) =>
 	expectValue right, left[0]
@@ -266,7 +266,10 @@ $strict_equal_q = (_, [left, right]) =>
 	Value.logic strict_equal_q(left, right)
 
 $same_q = (_, [left, right]) =>
-	Value.logic(left is right)
+	Value.logic do ([leftK, leftV] = left, [rightK, rightV] = right) =>
+		if leftK is rightK
+			if leftK in [Typesets.series..., Token.map] then left is right
+			else leftV is rightV
 
 
 ### Control flow ###
@@ -303,8 +306,8 @@ $while = (env, [[valueK, valueV], [bodyK, bodyV]]) =>
 
 $foreach = (env, [[wordK, wordV], [seriesK, seriesV], [bodyK, bodyV]]) =>
 	expectToken wordK, Token.word, Token.litWord, Token.block
-	expectToken seriesK, Token.series..., Token.map
-	expectToken body, Token.block
+	expectToken seriesK, Typesets.series..., Token.map
+	expectToken bodyK, Token.block
 
 	word =
 		if wordK isnt Token.block then wordV
@@ -317,11 +320,11 @@ $foreach = (env, [[wordK, wordV], [seriesK, seriesV], [bodyK, bodyV]]) =>
 			else words
 
 	elements = switch seriesK
-		when Token.block, Token.paren then valueV
+		when Token.block, Token.paren then seriesV
 		when Token.map
-			if typeof word is "string" then k for [k, _] in valueV
-			else [].concat(valueV...)
-		else Value.char(c.charCodeAt 0) for c in valueV
+			if typeof word is "string" then k for [k, _] in seriesV
+			else [].concat(seriesV...)
+		else Value.char(c.charCodeAt 0) for c in seriesV
 	
 	res = Value.NONE
 

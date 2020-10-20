@@ -199,7 +199,10 @@ nextLiteral = (reader) =>
 		if match = reader.match literals[literal]
 			return Value[literal] match.groups
 	
-	for literal in ["none", "logic", "money", "tuple", "issue", "ref", "email", "url", "time", "pair", "date", "tag"]
+	if reader.match literals.none
+		return Value.NONE
+
+	for literal in ["logic", "money", "tuple", "issue", "ref", "email", "url", "time", "pair", "date", "tag"]
 		if match = reader.match literals[literal]
 			return Value[literal] match[0]
 	
@@ -426,12 +429,11 @@ makeTokenValue = (indent, [kind, value]) =>
 	switch kind
 		when Token.map then makeObject indent, value
 		when Token.block then makeArray indent, value
-		when Token.integer then "#{value}"
+		when Token.integer, Token.float, Token.logic then "#{value}"
 		when Token.hexa then makeHexa value
-		when Token.float then "#{value}"
-		when Token.logic then "#{value}"
 		when Token.none then "null"
 		when Token.paren then throw new Error "Unexpected paren!"
+		when Token.char then '"' + String.fromCharCode(value) + '"'
 		else '"' + value + '"'
 
 toValueToken = (token) =>

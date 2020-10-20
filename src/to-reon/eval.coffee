@@ -21,11 +21,7 @@ export class Macro
 	# basic for now
 	call: (env, tokens) ->
 		args = for [kind, name] in @params
-			[name, switch kind
-				when Param.val
-					evalNextExpr(env, tokens)
-				else
-					throw new Error "todo!"]
+			[name, evalNextExprWithQuoting(env, tokens, kind)]
 		
 		return try
 			tmpEnv = env.newInner(args)
@@ -42,11 +38,7 @@ export class Intrinsic
 
 	call: (env, tokens) ->
 		args = for param in @params
-			switch param
-				when Param.val
-					evalNextExpr(env, tokens)
-				else
-					throw new Error "todo!"
+			evalNextExprWithQuoting env, tokens, param
 		
 		return @fn(env, args)
 
@@ -56,40 +48,58 @@ export isIntrinsic = (value) => value instanceof Intrinsic
 
 export isAnyMacro = (value) => isMacro(value) or isIntrinsic(value)
 
-export evalNextExpr = (env, tokens) =>
+notEmpty = (tokens) =>
 	if tokens.length is 0
 		throw new Error "Unexpected end of input!"
-	else
-		token = tokens.shift()
-		[kind, val] = token
 
-		switch kind
-			when Token.getWord
-				if (value = env.get(val))?
-					if isAnyMacro value 
-						throw new Error "Cannot get a macro value"
-					else
-						value
+mustGetWord = (env, word) =>
+	if (value = env.get(val))?
+		if isAnyMacro value 
+			throw new Error "Cannot get a macro value"
+		else
+			value
+	else
+		throw new Error "Undefined word `#{val}`!"
+
+export evalNextExprWithQuoting = (env, tokens, quoting) =>
+	notEmpty tokens
+	switch quoting
+		when Param.val then evalNextExpr env, tokens
+		when Param.get then tokens
+		else
+			[kind, val] = token = tokens.shift()
+
+			switch kind
+				when Token.paren then evalTokens env, val
+				when Token.getWord then mustGetWord val
+				else token
+
+export evalNextExpr = (env, tokens) =>
+	notEmpty tokens
+
+	[kind, val] = token = tokens.shift()
+
+	switch kind
+		when Token.getWord
+			mustGetWord env, val
+		
+		when Token.setWord
+			env.set(val, evalNextExpr(env, tokens))
+		
+		when Token.word
+			if (value = env.get(val))?
+				if isAnyMacro value
+					value.call(env, tokens)
 				else
-					throw new Error "Undefined word `#{val}`!"
-			
-			when Token.setWord
-				env.set(val, evalNextExpr(env, tokens))
-			
-			when Token.word
-				if (value = env.get(val))?
-					if isAnyMacro value
-						value.call(env, tokens)
-					else
-						value
-				else
-					throw new Error "Undefined word `#{val}`!"
-			
-			when Token.paren
-				evalTokens(env, val)
-			
+					value
 			else
-				token
+				throw new Error "Undefined word `#{val}`!"
+		
+		when Token.paren
+			evalTokens(env, val)
+		
+		else
+			token
 
 export evalTokens = (env, [tokens...]) =>
 	if tokens.length is 0

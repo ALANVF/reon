@@ -9,10 +9,10 @@ export all = (values) => values.every id
 export any = (values) => values.some id
 
 export chunk = (values, size, fill = undefined) =>
-	res = values[i...(i+size)] for _, i in values when i % size is 0
+	[_..., end] = res = (values[i...(i+size)] for _, i in values when i % size is 0)
 
-	if res.length > 0 and fill isnt undefined and res[-1].length != size
+	if end? and fill isnt undefined and end.length != size
 		for i in [0...size]
-			res[-1][i] ?= fill
+			end[i] ?= fill
 	
 	res

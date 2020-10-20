@@ -7,10 +7,10 @@ export Param =
 
 export class ControlFlow
 	class @Return
-		constructor: (@value = Token.NONE) ->
+		constructor: (@value = Value.NONE) ->
 	
 	class @Break
-		constructor: (@value = Token.NONE) ->
+		constructor: (@value = Value.NONE) ->
 	
 	class @Continue
 		constructor: ->

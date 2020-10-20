@@ -63,16 +63,16 @@ $macro = (_, [[paramsK, params], [bodyK, body]]) =>
 
 	new Macro params, [body...]
 
-$type_word = (_, [[valueK, __]]) =>
+$type_q_word = (_, [[valueK, __]]) =>
 	Value.litWord TypeMappings.name valueK
 
 $value_q = (env, [[wordK, word]]) =>
-	expectToken wordK, Token.word, Token.litWord#, ...any-string!
+	expectToken wordK, Token.word, Token.litWord
 
 	Value.logic env.has word
 
 $get = (env, [[wordK, word]]) =>
-	expectToken wordK, Token.word, Token.litWord#, ...any-string!
+	expectToken wordK, Token.word, Token.litWord
 
 	if env.has word
 		value = env.get word
@@ -151,6 +151,21 @@ $do_next = (env, [value, [wordK, wordV]]) =>
 
 ### Accessing ###
 
+mapFindPair = (map, key) =>
+	if key[0] in Typesets.anyWord
+		key = [Token.word, key[1]]
+
+	for pair in map
+		[kK, kV] = k = pair[0]
+
+		if kK in Typesets.anyWord
+			k = [Token.word, kV]
+		
+		if $strict_equal_q(null, [k, key])[1]
+			return pair
+	
+	null
+
 $pick = (env, [[valueK, valueV], index]) =>
 	do([indexK, indexV] = index) =>
 		if valueK in Typesets.anyString
@@ -166,20 +181,13 @@ $pick = (env, [[valueK, valueV], index]) =>
 			when Token.map
 				# todo: validate key
 				#valueV.find(([k, _]) => $strict_equal_q(env, [k, index])[1])?[1] ? Value.NONE
-				if index[0] in Typesets.anyWord
-					index = [Token.word, index[1]]
-
-				for [k, v] in valueV
-					if k[0] in Typesets.anyWord
-						k = [Token.word, k[1]]
-					
-					if $strict_equal_q(env, [k, index])[1]
-						return v
-				Value.NONE
+				if (pair = mapFindPair(valueV, index))? then pair[1]
+				else Value.NONE
 			when Token.pair, Token.time, Token.date, Token.tuple
 				throw "todo!"
 			else
 				unexpectedToken tokenK
+
 
 ### Copying ###
 
@@ -187,22 +195,16 @@ $copy = (_, [[valueK, valueV]]) =>
 	[valueK, switch valueK
 		when Token.paren, Token.block then [valueV...]
 		when Token.map then pair for [pair...] in valueV
-		else
-			if valueK in Typesets.anyString
-				throw "todo!"
-			else
-				valueV]
+		else valueV]
 
-# FIX
-$copy_deep = (_, [[valueK, valueV]]) =>
-	[valueK, switch valueK
-		when Token.paren, Token.block then valueV.map($copy_deep)
-		when Token.map then pair.map($copy_deep) for pair in valueV
-		else
-			if valueK in Typesets.anyString
-				throw "todo!"
-			else
-				valueV]
+$copy_deep = (_, [value]) =>
+	copy_deep = ([valueK, valueV]) =>
+		[valueK, switch valueK
+			when Token.paren, Token.block then valueV.map(copy_deep)
+			when Token.map then pair.map(copy_deep) for pair in valueV
+			else valueV]
+	
+	copy_deep value
 
 
 ### Logic ###
@@ -249,7 +251,7 @@ $xor = (_, [left, right]) =>
 # basic for now
 $strict_equal_q = (_, [left, right]) =>
 	strict_equal_q = ([leftK, leftV], [rightK, rightV]) =>
-		Value.logic(leftK is rightK and switch leftK
+		leftK is rightK and switch leftK
 			when Token.none then true
 			when Token.block, Token.paren
 				leftV.length is rightV.length and
@@ -259,9 +261,9 @@ $strict_equal_q = (_, [left, right]) =>
 					Util.all Util.zip(leftV, rightV, ([k1, v1], [k2, v2]) =>
 						strict_equal_q(k1, k2) and strict_equal_q(v1, v2))
 			else # todo: make this better
-				leftV is rightV)
+				leftV is rightV
 	
-	strict_equal_q left, right
+	Value.logic strict_equal_q(left, right)
 
 $same_q = (_, [left, right]) =>
 	Value.logic(left is right)
@@ -275,7 +277,7 @@ $if = (env, [value, [bodyK, bodyV]]) =>
 	if toLogic value
 		evalTokens env, bodyV
 	else
-		Token.NONE
+		Value.NONE
 
 $either = (env, [value, [thenK, thenV], [elseK, elseV]]) =>
 	expectToken thenK, Token.block
@@ -287,34 +289,76 @@ $while = (env, [[valueK, valueV], [bodyK, bodyV]]) =>
 	expectToken valueK, Token.block
 	expectToken bodyK, Token.block
 
-	res = Token.NONE
+	res = Value.NONE
 
 	while toLogic evalTokens(env, valueV)
 		try
 			res = evalTokens(env, bodyV)
 		catch e then switch
 			when e instanceof ControlFlow.Continue then continue
-			when e instanceof ControlFlow.Break
-				res = e.value ? Token.NONE 
-				break
-			else
-				throw e
+			when e instanceof ControlFlow.Break then return e.value
+			else throw e
 	
 	res
+
+$foreach = (env, [[wordK, wordV], [seriesK, seriesV], [bodyK, bodyV]]) =>
+	expectToken wordK, Token.word, Token.litWord, Token.block
+	expectToken seriesK, Token.series..., Token.map
+	expectToken body, Token.block
+
+	word =
+		if wordK isnt Token.block then wordV
+		else
+			words = for [k, v] in wordV
+				expectToken k, Token.word, Token.litWord
+				v
+			
+			if words.length is 1 then words[0]
+			else words
+
+	elements = switch seriesK
+		when Token.block, Token.paren then valueV
+		when Token.map
+			if typeof word is "string" then k for [k, _] in valueV
+			else [].concat(valueV...)
+		else Value.char(c.charCodeAt 0) for c in valueV
+	
+	res = Value.NONE
+
+	if typeof word is "string"
+		for elem in elements
+			try
+				res = evalTokens env.newInner([word]: elem), bodyV
+			catch e then switch
+				when e instanceof ControlFlow.Continue then continue
+				when e instanceof ControlFlow.Break then return e.value
+				else throw e
+	else
+		words = word
+		
+		for elems in Util.chunk(elements, words.length, Value.NONE)
+			try
+				tmpEnv = env.newInner(pair for pair in Util.zip(words, elems))
+				res = evalTokens tmpEnv, bodyV
+			catch e then switch
+				when e instanceof ControlFlow.Continue then continue
+				when e instanceof ControlFlow.Break then return e.value
+				else throw e
+
 
 $return = (_, [value]) =>
 	throw new ControlFlow.Return value
 
-$exit = (_, __) =>
+$exit = (_, []) =>
 	throw new ControlFlow.Return
 
-$break = (_, __) =>
+$break = (_, []) =>
 	throw new ControlFlow.Break
 
 $break_return = (_, [value]) =>
 	throw new ControlFlow.Break value
 
-$continue = (_, __) =>
+$continue = (_, []) =>
 	throw new ControlFlow.Continue value
 
 
@@ -327,13 +371,14 @@ $continue = (_, __) =>
 ### Strings ###
 
 # basic for now
-$form = (_, value) =>
+$form = (_, [value]) =>
 	form = ([valueK, valueV]) =>
-		if valueK in Typesets.anyString.concat(Typesets.anyWord) then valueV
+		if valueK in [Typesets.anyString..., Typesets.anyWord..., Typesets.otherStringy...] then valueV
 		else switch valueK
 			when Token.none then "none"
 			when Token.logic, Token.integer, Token.float then "#{valueV}"
 			when Token.block, Token.paren then valueV.map(form).join(" ")
+			when Token.char then String.fromCharCode valueV
 			else throw "todo!"
 	
 	Value.string form value
@@ -343,6 +388,32 @@ $form = (_, value) =>
 
 ### Series ###
 
+$append = (env, [series, value]) =>
+	expectValue series, Typesets.series...
+
+	do([seriesK, seriesV] = series, [valueK, valueV] = value) =>
+		if seriesK in Typesets.anyString
+			series[1] +=
+				if valueK in Typesets.anyString then valueV
+				else $form(env, [value])[1]
+		else
+			seriesV.push value
+
+	series
+
+
+### Maps ###
+
+$extend = (_, [[mapK, mapV], key, value]) =>
+	expectToken mapK, Token.map
+
+	if (pair = mapFindPair(mapV, key))?
+		pair[1] = value
+	else
+		mapV.push [key, value]
+
+	value
+
 
 ### Intrinsics ###
 
@@ -350,7 +421,7 @@ $form = (_, value) =>
 
 export default Intrinsics =
 	macro: new Intrinsic [PVal, PVal], $macro
-	"type.word": new Intrinsic [PVal], $type_word
+	"type?.word": new Intrinsic [PVal], $type_q_word
 	"value?": new Intrinsic [PVal], $value_q
 	get: new Intrinsic [PVal], $get
 	set: new Intrinsic [PVal, PVal], $set
@@ -370,9 +441,12 @@ export default Intrinsics =
 	"if": new Intrinsic [PVal, PVal], $if
 	either: new Intrinsic [PVal, PVal, PVal], $either
 	"while": new Intrinsic [PVal, PVal], $while
+	foreach: new Intrinsic [PLit, PVal, PVal], $foreach
 	"return": new Intrinsic [PVal], $return
 	exit: new Intrinsic [], $exit
 	"break": new Intrinsic [], $break
 	"break.return": new Intrinsic [PVal], $break_return
 	"continue": new Intrinsic [], $continue
 	form: new Intrinsic [PVal], $form
+	append: new Intrinsic [PVal, PVal], $append
+	extend: new Intrinsic [PVal, PVal, PVal], $extend

@@ -20,6 +20,9 @@ export default class Env
 		else
 			@env.set(word, value)
 	
+	add: (word, value) ->
+		@env.set(word, value)
+	
 	newInner: (env = null) ->
 		new Env
 			env: env

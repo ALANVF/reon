@@ -37,6 +37,7 @@ export class Typesets
 	@anyWord = [Token.word, Token.litWord, Token.getWord, Token.setWord]
 	@anyString = (Token[n] for n in ["ref", "email", "url", "file", "tag", "string"])
 	@series = [@anyString..., Token.block, Token.paren]
+	@otherStringy = [Token.money, Token.tuple, Token.issue, Token.time, Token.pair, Token.date]
 
 export nameOfToken = (token) =>
 	name = Object.keys(Token)[token]

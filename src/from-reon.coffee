@@ -366,8 +366,14 @@ makeArray = (indent, values) =>
 
 	vals = for value in values
 		makeValue indent + 1, value
+	isMultiLine =
+		vals.length > 10 or
+		vals.some((str) => "\n" in str or str.length > 80) or
+		vals.reduce(
+			(l, s) => l + s.length,
+			(vals.length - 1) * 2) > 80
 	
-	if vals.length > 10 or vals.some((str) => "\n" in str or str.length > 80)
+	if isMultiLine
 		tabs = "\t".repeat indent + 1
 		vals = for value in vals
 			"\n" + tabs + value

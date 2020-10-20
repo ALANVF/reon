@@ -1,0 +1,39 @@
+t1-body: [
+	res: "abc"
+	append res value
+	res
+]
+t1-1: macro [value] copy.deep t1-body
+t1-2: macro [value] copy.deep t1-body
+t2: macro [value][
+	res: copy "abc"
+	append res value
+	res
+]
+
+#(
+	test1 [
+		[
+			(t1-1 1)
+			(t1-1 2)
+			(t1-1 [3 4.5 "6"])
+			(t1-1 $7.89)
+		]
+
+		[
+			(copy t1-2 1)
+			(copy t1-2 2)
+			(copy t1-2 [3 4.5 "6"])
+			(copy t1-2 $7.89)
+		]
+	]
+
+	test2 [
+		[
+			(t2 1)
+			(t2 2)
+			(t2 [3 4.5 "6"])
+			(t2 $7.89)
+		]
+	]
+)

@@ -1,0 +1,63 @@
+as-block: macro [values][
+	res: copy []
+
+	foreach value values [
+		append res value
+	]
+
+	res
+]
+as-block-2: macro [values][
+	res: copy []
+
+	foreach [value1 value2] values [
+		append res value1
+		append res value2
+	]
+
+	res
+]
+as-block-3: macro [values][
+	res: copy []
+
+	foreach [value1 value2] values [
+		append res value1
+		if not same? value2 none [
+			append res value2
+		]
+	]
+
+	res
+]
+
+#(
+	;@@ TODO: add more tests
+	
+	test-foreach [
+		[
+			(as-block [1 2 3])
+			(as-block "123")
+			(as-block {{}})
+			(as-block %some/file)
+			(as-block #(a: 1 b: 2))
+		]
+
+		[
+			(as-block-2 [1 2 3])
+			(as-block-2 "123")
+			(as-block-2 {{}})
+			(as-block-2 %some/file)
+			(as-block-2 #(a: 1 b: 2))
+			(as-block-2 "0123456789")
+		]
+
+		[
+			(as-block-3 [1 2 3])
+			(as-block-3 "123")
+			(as-block-3 {{}})
+			(as-block-3 %some/file)
+			(as-block-3 #(a: 1 b: 2))
+			(as-block-3 "0123456789")
+		]
+	]
+)

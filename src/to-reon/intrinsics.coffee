@@ -180,7 +180,6 @@ $pick = (env, [[valueK, valueV], index]) =>
 				valueV[indexV] ? Value.NONE
 			when Token.map
 				# todo: validate key
-				#valueV.find(([k, _]) => $strict_equal_q(env, [k, index])[1])?[1] ? Value.NONE
 				if (pair = mapFindPair(valueV, index))? then pair[1]
 				else Value.NONE
 			when Token.pair, Token.time, Token.date, Token.tuple
@@ -246,8 +245,6 @@ $xor = (_, [left, right]) =>
 
 #$lesser
 
-#$lesser_or_equal
-
 # basic for now
 $strict_equal_q = (_, [left, right]) =>
 	strict_equal_q = ([leftK, leftV], [rightK, rightV]) =>
@@ -268,7 +265,7 @@ $strict_equal_q = (_, [left, right]) =>
 $same_q = (_, [left, right]) =>
 	Value.logic do ([leftK, leftV] = left, [rightK, rightV] = right) =>
 		if leftK is rightK
-			if leftK in [Typesets.series..., Token.map] then left is right
+			if leftK in Typesets.seriesLike then left is right
 			else leftV is rightV
 
 
@@ -306,7 +303,7 @@ $while = (env, [[valueK, valueV], [bodyK, bodyV]]) =>
 
 $foreach = (env, [[wordK, wordV], [seriesK, seriesV], [bodyK, bodyV]]) =>
 	expectToken wordK, Token.word, Token.litWord, Token.block
-	expectToken seriesK, Typesets.series..., Token.map
+	expectToken seriesK, Typesets.seriesLike...
 	expectToken bodyK, Token.block
 
 	word =
@@ -391,6 +388,14 @@ $form = (_, [value]) =>
 
 ### Series ###
 
+$length_q = (_, [[seriesK, seriesV]]) =>
+	expectToken seriesK, Typesets.seriesLike..., Token.tuple, Token.none
+
+	if seriesK is Token.none then Value.NONE
+	else Value.integer(
+		if seriesK isnt Token.tuple then seriesV.length
+		else throw "todo!")
+
 $append = (env, [series, value]) =>
 	expectValue series, Typesets.series...
 
@@ -403,6 +408,24 @@ $append = (env, [series, value]) =>
 			seriesV.push value
 
 	series
+
+###
+$insert_at = (env, [series, [indexK, indexV], value]) =>
+	expectValue series, Typesets.series...
+	expectToken indexK, Token.integer
+
+	do([seriesK, seriesV] = series, [valueK, valueV] = value) =>
+		if seriesK in Typesets.anyString
+			str =
+				if valueK in Typesets.anyString then valueV
+				else $form(env, [value])[1]
+			
+			series[1] = seriesV[...indexV] + str + seriesV[indexV..]
+		else
+			seriesV.splice indexV, 0, value
+
+	series
+###
 
 
 ### Maps ###
@@ -451,5 +474,7 @@ export default Intrinsics =
 	"break.return": new Intrinsic [PVal], $break_return
 	"continue": new Intrinsic [], $continue
 	form: new Intrinsic [PVal], $form
+	"length?": new Intrinsic [PVal], $length_q
 	append: new Intrinsic [PVal, PVal], $append
+	#"insert-at": new Intrinsic [PVal, PVal, PVal], $insert_at
 	extend: new Intrinsic [PVal, PVal, PVal], $extend

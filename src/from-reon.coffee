@@ -5,35 +5,35 @@ import * as Eval from "./to-reon/eval.js"
 
 digits = "(?:\\d+(?:'\\d+)*)"
 wordBase = /[^\d/\\,()[\]{}"'#%$@:;\s][^/\\,()[\]{}"#%$@:;\s]*/.source
-comment = /;[^\n]*(?:\n|$)/m
+comment = /^;[^\n]*(?:\n|$)/m
 literals =
-	none:    /none(?=[\s()[\]{}#;"%]|$)/i
-	logic:   /(?:true|false|yes|no|on|off)(?=[\s()[\]{}#;"%]|$)/i
-	word:    ///#{wordBase}(?![:@])///
-	litWord: ///'(#{wordBase})///
-	getWord: ///:(#{wordBase})///
-	setWord: ///(#{wordBase}):(?![\w/])///
-	integer: ///
+	none:    /^none(?=[\s()[\]{}#;"%]|$)/i
+	logic:   /^(?:true|false|yes|no|on|off)(?=[\s()[\]{}#;"%]|$)/i
+	word:    ///^#{wordBase}(?![:@])///
+	litWord: ///^'(#{wordBase})///
+	getWord: ///^:(#{wordBase})///
+	setWord: ///^(#{wordBase}):(?![\w/])///
+	integer: ///^
 		(?<sign>   [+-])?
 		(?<number> #{digits} (?! [\d,.x:/-]))
 		(?<exp>    e[+-]?\d+)?
 	///i
-	hexa:  /([A-F\d]{2,})h(?![\w:@])/
-	float: ///
+	hexa:  /^([A-F\d]{2,})h(?![\w:@])/
+	float: ///^
 		(?<sign>  [+-])?
 		(?<ipart> #{digits})
 		[,.]
 		(?<fpart> #{digits} (?! \.))
 		(?<exp>   e[+-]?\d+)?
 	///i
-	money: /[+-]?[A-Z]{0,3}\$\d+(?:[,.]\d{1,5})?/
-	tuple: /\d+(?:\.\d+){2,12}/
-	issue: /#[^\s@#$%^()[\]{},\\;"<>/]+/
-	ref:   /@[^#$@",;=\\^/<>()[\]{}]+/
-	email: /[^\s:/()[\]{}]+@[^\s:/()[\]{}]+/
-	url:   /[A-Za-z][\w-]{1,15}:(?:\/{0,3}[^\s[\]()"]+|\/\/)/
-	file:  /%(?![\s%:;()[\]{}])(?:([^\s;"()[\]{}]+)|"((?:\^"|[^"^])*?)")/
-	time:  ///
+	money: /^[+-]?[A-Z]{0,3}\$\d+(?:[,.]\d{1,5})?/
+	tuple: /^\d+(?:\.\d+){2,12}/
+	issue: /^#[^\s@#$%^()[\]{},\\;"<>/]+/
+	ref:   /^@[^#$@",;=\\^/<>()[\]{}]+/
+	email: /^[^\s:/()[\]{}]+@[^\s:/()[\]{}]+/
+	url:   /^[A-Za-z][\w-]{1,15}:(?:\/{0,3}[^\s[\]()"]+|\/\/)/
+	file:  /^%(?![\s%:;()[\]{}])(?:([^\s;"()[\]{}]+)|"((?:\^"|[^"^])*?)")/
+	time:  ///^
 		[+-]? (?:
 			\d{0,2} : \d\d? (?:
 				\. \d{0,9}
@@ -46,8 +46,8 @@ literals =
 			(?: [ap]m )?
 		)
 	///i
-	pair: /[+-]?\d+x[+-]?\d+/i
-	date: ///
+	pair: /^[+-]?\d+x[+-]?\d+/i
+	date: ///^
 		\d{1,4}
 		-
 		(?:
@@ -81,9 +81,9 @@ literals =
 			)?
 		)?
 	///
-	char:   /#"((?:^\(\w+\)|\^.|[^"^]))"/
-	tag:    /<[^=><[\](){}l^"\s](?:"[^"]*"|'[^']*'|[^>"']*)*>/
-	string: /"((?:\^.|[^"^]+)*)"/
+	char:   /^#"((?:^\(\w+\)|\^.|[^"^]))"/
+	tag:    /^<[^=><[\](){}l^"\s](?:"[^"]*"|'[^']*'|[^>"']*)*>/
+	string: /^"((?:\^.|[^"^]+)*)"/
 
 
 class Reader
@@ -142,7 +142,7 @@ Object.fromEntries ?= (arr) ->
 
 
 trimSpace = (reader) =>
-	if reader.match /\s+/m
+	if reader.match /^\s+/m
 		if reader.match comment
 			trimSpace reader
 		else

@@ -1,7 +1,7 @@
 {
-	"name": "reon",
+	"name": "reon-convert",
 	"version": "0.1.2",
-	"description": "Convert between JSON and Red/Rebol object notation",
+	"description": "An expressive data format similar to Ren",
 	"main": "index.js",
 	"bin": "./bin/reon",
 	"scripts": {

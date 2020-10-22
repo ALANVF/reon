@@ -18,7 +18,7 @@ for my $dir (@dirs) {
 	my $in_file = "$dir/input.$in";
 
 	if(-f $in_file) {
-		if(`../bin/reon to-json $in_file -o output` =~ m/^Wrote to .+$/) {
+		if(`../bin/reon-convert to-json $in_file -o output` =~ m/^Wrote to .+$/) {
 			say sprintf("PASSED: \%-${max_dir_len}s ($in -> $out)", $dir)
 		} else {
 			die sprintf("FAILED: \%-${max_dir_len}s ($in -> $out)\n", $dir)

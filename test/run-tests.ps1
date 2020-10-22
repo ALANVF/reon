@@ -22,7 +22,7 @@ foreach($_dir in $dirs) {
 
 	$fmt = "{0,-${maxDirLen}} ($in -> $out)" -f $dirName
 	
-	$output = (node "..\bin\reon" "to-$out" ".\$dirName\input.$in" -o "output")
+	$output = (node "..\bin\reon-convert" "to-$out" ".\$dirName\input.$in" -o "output")
 	if($output -cmatch "^Wrote to .+$") {
 		Write-Output "PASSED: $fmt"
 	} else {

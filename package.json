@@ -10,7 +10,7 @@
 		"run-tests-win": "powershell test/run-tests.ps1"
 	},
 	"author": "theangryepicbanana",
-	"license": "",
+	"license": "MIT",
 	"dependencies": {
 		"coffeescript": "^2.5.1",
 		"is-url": "^1.2.4",

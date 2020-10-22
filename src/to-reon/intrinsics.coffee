@@ -344,6 +344,8 @@ $foreach = (env, [[wordK, wordV], [seriesK, seriesV], [bodyK, bodyV]]) =>
 				when e instanceof ControlFlow.Continue then continue
 				when e instanceof ControlFlow.Break then return e.value
 				else throw e
+	
+	res
 
 
 $return = (_, [value]) =>
@@ -359,7 +361,7 @@ $break_return = (_, [value]) =>
 	throw new ControlFlow.Break value
 
 $continue = (_, []) =>
-	throw new ControlFlow.Continue value
+	throw new ControlFlow.Continue
 
 
 ### Conversion ###

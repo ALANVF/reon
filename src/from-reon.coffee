@@ -329,7 +329,7 @@ normalizeStringy = (string) =>
 						out += string
 						string.length
 					when string.match /^\^[A-Z]/i
-						char = (string[1].toUpperCase().charCodeAt(1) - 64).toString 16
+						char = (string.toUpperCase().charCodeAt(1) - 64).toString 16
 						out += "\\u00" + "0".repeat(2 - char.length) + char
 						2
 					when match = string.match /^\^\(([\dA-F]{2})\)$/i

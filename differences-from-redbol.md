@@ -35,12 +35,12 @@ To simplify implementations of REON:
 - Macros cannot be passed around as a regular value
 - Series values do not have an associated index
 - `issue!` values act more like a string than a word
+- `a: b: c:` syntax is used instead of `/local a b c` when declaring local variables in the macro spec
 
 In an attempt to prevent unwanted surprises:
 - Indexing starts at 0
 - Series operations such as `append` and `compose` will always treat a block as a single value
 - Standard logic words are always evaluated
-- New variables declared within a macro are automatically bound to it
 
 
 ## Intrinsics

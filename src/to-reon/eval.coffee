@@ -16,7 +16,8 @@ export class ControlFlow
 		constructor: ->
 
 export class Macro
-	constructor: (@params, @body) ->
+	constructor: (@params, locals, @body) ->
+		@locals = ([name, Value.NONE] for name in locals)
 	
 	# basic for now
 	call: (env, tokens) ->
@@ -24,7 +25,7 @@ export class Macro
 			[name, evalNextExprWithQuoting(env, tokens, kind)]
 		
 		return try
-			tmpEnv = env.newInner(args)
+			tmpEnv = env.newInner(args.concat @locals)
 			evalTokens(tmpEnv, @body)
 		catch e
 			switch

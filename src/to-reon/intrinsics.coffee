@@ -50,18 +50,22 @@ class TypeMappings
 
 ### Core ###
 
-$macro = (_, [[paramsK, params], [bodyK, body]]) =>
+$macro = (_, [[paramsK, paramsV], [bodyK, bodyV]]) =>
 	expectToken paramsK, Token.block
 	expectToken bodyK,   Token.block
 
-	params = for [paramK, param] in params
+	params = []
+	locals = []
+	
+	for [paramK, paramV] in paramsV
 		switch paramK
-			when Token.word    then [Param.val, param]
-			when Token.getWord then [Param.get, param]
-			when Token.litWord then [Param.lit, param]
-			else               unexpectedToken paramK
+			when Token.word    then params.push [Param.val, paramV]
+			when Token.getWord then params.push [Param.get, paramV]
+			when Token.litWord then params.push [Param.lit, paramV]
+			when Token.setWord then locals.push paramV
+			else                    unexpectedToken paramK
 
-	new Macro params, [body...]
+	new Macro params, locals, [bodyV...]
 
 $type_q_word = (_, [[valueK, __]]) =>
 	Value.litWord TypeMappings.name valueK
@@ -141,7 +145,7 @@ $do_next = (env, [value, [wordK, wordV]]) =>
 		when Token.block, Token.paren
 			tokens = [valueV...]
 			res = evalNextExpr env, tokens
-			env.set wordV, [valueK, tokens]
+			env.set wordV, [valueK, tokens] # FIX: this breaks when target word already exists
 			res
 		when Token.string
 			throw "todo!"

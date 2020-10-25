@@ -3,9 +3,9 @@ t1-body: [
 	append res value
 	res
 ]
-t1-1: macro [value] copy.deep t1-body
-t1-2: macro [value] copy.deep t1-body
-t2: macro [value][
+t1-1: macro [value res:] copy.deep t1-body
+t1-2: macro [value res:] copy.deep t1-body
+t2: macro [value res:][
 	res: copy "abc"
 	append res value
 	res

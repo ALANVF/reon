@@ -1,4 +1,4 @@
-as-block: macro [values][
+as-block: macro [values res:][
 	res: copy []
 
 	foreach value values [
@@ -7,7 +7,7 @@ as-block: macro [values][
 
 	res
 ]
-as-block-2: macro [values][
+as-block-2: macro [values res:][
 	res: copy []
 
 	foreach [value1 value2] values [
@@ -17,7 +17,7 @@ as-block-2: macro [values][
 
 	res
 ]
-as-block-3: macro [values][
+as-block-3: macro [values res:][
 	res: copy []
 
 	foreach [value1 value2] values [

@@ -15,10 +15,10 @@ export default class Env
 		@env.get(word) ? @outer?.get(word)
 	
 	set: (word, value) ->
-		if @outer?.has(word)
-			@outer.set(word, value)
-		else
+		if @env.has(word) or @outer is null
 			@env.set(word, value)
+		else
+			@outer.set(word, value)
 	
 	add: (word, value) ->
 		@env.set(word, value)

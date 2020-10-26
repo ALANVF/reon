@@ -54,19 +54,19 @@ notEmpty = (tokens) =>
 		throw new Error "Unexpected end of input!"
 
 mustGetWord = (env, word) =>
-	if (value = env.get(val))?
+	if (value = env.get(word))?
 		if isAnyMacro value 
 			throw new Error "Cannot get a macro value"
 		else
 			value
 	else
-		throw new Error "Undefined word `#{val}`!"
+		throw new Error "Undefined word `#{word}`!"
 
 export evalNextExprWithQuoting = (env, tokens, quoting) =>
 	notEmpty tokens
 	switch quoting
 		when Param.val then evalNextExpr env, tokens
-		when Param.get then tokens
+		when Param.get then tokens.shift()
 		else
 			[kind, val] = token = tokens.shift()
 

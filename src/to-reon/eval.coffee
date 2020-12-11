@@ -112,9 +112,3 @@ export evalTokens = (env, [tokens...]) =>
 			res = evalNextExpr(env, tokens)
 		
 		res
-
-###
-export reduceTokens = (env, [tokens...]) ->
-	while tokens.length > 0
-		evalNextExpr(env, tokens)
-###

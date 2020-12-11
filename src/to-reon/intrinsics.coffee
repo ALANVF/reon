@@ -1,5 +1,5 @@
 import * as Util from "../util.js"
-import Token, {Value, Typesets, nameOfToken} from "./token.js"
+import Token, {Datatypes, Value, Typesets, nameOfToken} from "./token.js"
 import {Param, ControlFlow, Macro, Intrinsic, isAnyMacro, evalNextExpr, evalTokens} from "./eval.js"
 
 unexpectedToken = (tokenK) =>
@@ -11,41 +11,6 @@ expectToken = (valueK, kinds...) =>
 
 expectValue = ([valueK, _], kinds...) =>
 	expectToken valueK, kinds...
-
-class TypeMappings
-	@mappings = [
-		[Token.none,    "none!"]
-		[Token.logic,   "logic!"]
-		[Token.word,    "word!"]
-		[Token.litWord, "lit-word!"]
-		[Token.getWord, "get-word!"]
-		[Token.setWord, "set-word!"]
-		[Token.integer, "integer!"]
-		[Token.hexa,    "hexa!"]
-		[Token.float,   "float!"]
-		[Token.money,   "money!"]
-		[Token.tuple,   "tuple!"]
-		[Token.issue,   "issue!"]
-		[Token.ref,     "ref!"]
-		[Token.email,   "email!"]
-		[Token.url,     "url!"]
-		[Token.file,    "file!"]
-		[Token.time,    "time!"]
-		[Token.pair,    "pair!"]
-		[Token.date,    "date!"]
-		[Token.char,    "char!"]
-		[Token.tag,     "tag!"]
-		[Token.string,  "string!"]
-		[Token.block,   "block!"]
-		[Token.map,     "map!"]
-		[Token.paren,   "paren!"]
-	]
-	@tokenToName = new Map @mappings
-	@nameToToken = new Map([n, k] for [k, n] in @mappings)
-
-	@name: (tokenK) -> @tokenToName.get(tokenK)
-
-	@token: (name) -> @nameToToken.get(name)
 
 
 ### Core ###
@@ -67,8 +32,11 @@ $macro = (_, [[paramsK, paramsV], [bodyK, bodyV]]) =>
 
 	new Macro params, locals, [bodyV...]
 
+$type_q = (_, [[valueK, __]]) =>
+	Datatypes.tokenType valueK
+
 $type_q_word = (_, [[valueK, __]]) =>
-	Value.litWord TypeMappings.name valueK
+	Value.litWord Datatypes.tokenName valueK
 
 $value_q = (env, [[wordK, word]]) =>
 	expectToken wordK, Token.word, Token.litWord
@@ -104,7 +72,16 @@ $set = (env, [[wordK, word], value]) =>
 
 ### Evaluation ###
 
-#$reduce = (env, [value])
+$reduce = (env, [value]) =>
+	if value[0] is Token.block
+		[_, [tokens...]] = value
+
+		values = while tokens.length > 0
+			evalNextExpr(env, tokens)
+
+		[Token.block, values]
+	else
+		value
 
 # acts like compose/only
 $compose = (env, [value]) =>
@@ -457,6 +434,7 @@ export default Intrinsics =
 	"value?": new Intrinsic [PVal], $value_q
 	get: new Intrinsic [PVal], $get
 	set: new Intrinsic [PVal, PVal], $set
+	reduce: new Intrinsic [PVal], $reduce
 	compose: new Intrinsic [PVal], $compose
 	"compose.deep": new Intrinsic [PVal], $compose_deep
 	do: new Intrinsic [PVal], $do

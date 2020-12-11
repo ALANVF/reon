@@ -1,4 +1,4 @@
-import Token, {Value, nameOfToken} from "./to-reon/token.js"
+import Token, {Value, Datatypes, nameOfToken} from "./to-reon/token.js"
 import Env from "./to-reon/env.js"
 import Intrinsics, {setTokenizeFunction} from "./to-reon/intrinsics.js"
 import * as Eval from "./to-reon/eval.js"
@@ -28,8 +28,8 @@ literals =
 	///i
 	money: /^[+-]?[A-Z]{0,3}\$\d+(?:[,.]\d{1,5})?/
 	tuple: /^\d+(?:\.\d+){2,12}/
-	issue: /^#[^\s@#$%^()[\]{},\\;"<>/]+/
-	ref:   /^@[^#$@",;=\\^/<>()[\]{}]+/
+	issue: /^#([^\s@#$%^()[\]{},\\;"<>/]+)/
+	ref:   /^@([^\s#$@",;=\\^/<>()[\]{}]+)/
 	email: /^[^\s:/()[\]{}]+@[^\s:/()[\]{}]+/
 	url:   /^[A-Za-z][\w-]{1,15}:(?:\/{0,3}[^\s[\]()"]+|\/\/)/
 	file:  /^%(?![\s%:;()[\]{}])(?:([^\s;"()[\]{}]+)|"((?:\^"|[^"^])*?)")/
@@ -191,7 +191,7 @@ nextLiteral = (reader) =>
 			reader.next()
 			return Value.paren values
 	
-	for literal in ["string", "hexa", "file", "char"]
+	for literal in ["string", "hexa", "file", "char", "issue", "ref"]
 		if match = reader.match literals[literal]
 			return Value[literal] match[1]
 	
@@ -202,7 +202,7 @@ nextLiteral = (reader) =>
 	if reader.match literals.none
 		return Value.NONE
 
-	for literal in ["logic", "money", "tuple", "issue", "ref", "email", "url", "time", "pair", "date", "tag"]
+	for literal in ["logic", "money", "tuple", "email", "url", "time", "pair", "date", "tag"]
 		if match = reader.match literals[literal]
 			return Value[literal] match[0]
 	
@@ -387,10 +387,11 @@ makeArray = (indent, values) =>
 
 makeString = ([kind, value]) =>
 	switch kind
-		when Token.file, Token.char, Token.string, Token.tag, Token.url
-			'"' + normalizeStringy(value) + '"'
-		when Token.money, Token.tuple, Token.issue, Token.ref, Token.email, Token.time, Token.pair, Token.date
-			'"' + value + '"'
+		when Token.file, Token.char, Token.string, Token.tag, Token.url then '"' + normalizeStringy(value) + '"'
+		when Token.issue then "#" + value
+		when Token.ref then "@" + value
+		when Token.money, Token.tuple, Token.email, Token.time, Token.pair, Token.date then '"' + value + '"'
+		else throw new TypeError "Unexpected #{nameOfToken kind}"
 
 makeBoolean = (logic) =>
 	if logic.toLowerCase() in ["true", "yes", "on"]
@@ -423,6 +424,7 @@ makeValue = (indent, token) =>
 		when Token.logic then makeBoolean value
 		when Token.none then "null"
 		when Token.paren then throw new Error "Unexpected paren!"
+		when Token.datatype then throw new Error "Unexpected datatype!"
 		else makeString token
 
 makeTokenValue = (indent, [kind, value]) =>
@@ -433,6 +435,7 @@ makeTokenValue = (indent, [kind, value]) =>
 		when Token.hexa then makeHexa value
 		when Token.none then "null"
 		when Token.paren then throw new Error "Unexpected paren!"
+		when Token.datatype then throw new Error "Unexpected datatype!"
 		when Token.char then '"' + String.fromCharCode(value) + '"'
 		else '"' + value + '"'
 
@@ -465,7 +468,11 @@ export default fromREON = (input) =>
 	trimSpace reader
 
 	return if reader.match literals.setWord, false
-		env = new Env env: Intrinsics
+		env = new Env env: {Intrinsics...}
+
+		for name, kind of Token
+			env.set name, Datatypes.tokenType kind
+
 		tokens = until (trimSpace reader; reader.eof())
 			toValueToken(nextToken reader)
 		

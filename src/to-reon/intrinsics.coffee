@@ -1,3 +1,4 @@
+import assert from "assert"
 import * as Util from "../util.js"
 import Token, {Datatypes, Value, Typesets, nameOfToken} from "./token.js"
 import {Param, ControlFlow, Macro, Intrinsic, isAnyMacro, evalNextExpr, evalTokens} from "./eval.js"
@@ -359,6 +360,90 @@ $continue = (_, []) =>
 
 ### Conversion ###
 
+toChar = ([valueK, valueV]) =>
+	expectToken valueK, Token.integer, Token.float, Token.hexa, Token.char, Typesets.anyString...
+
+	switch valueK
+		when Token.integer
+			assert valueV >= 0, "Out of bounds"
+			valueV
+		when Token.float
+			assert valueV >= 0, "Out of bounds"
+			Math.floor valueV
+		when Token.hexa, Token.char then valueV
+		else
+			assert valueV.length > 0, "Invalid arg"
+			valueV.charCodeAt 0
+
+toBlock = ([valueK, valueV]) => switch valueK
+	when Token.map then [].concat(valueV...)
+	when Token.string then tokenize valueV
+	when Token.block, Token.paren then [valueV...]
+	else [valueV]
+
+toMap = ([valueK, valueV]) =>
+	expectToken valueK, Token.map, Token.block, Token.paren
+
+	if valueK is Token.map then ([k, v] for [k, v] in valueV)
+	else
+		assert valueV.length % 2
+		Util.chunk(valueV, 2)
+
+stringToWord = (string, rx) =>
+	word = string.trim()
+	assert rx.exec word
+	word
+
+charToWord = (char, rx) =>
+	word = String.fromCharCode char
+	assert rx.exec word
+	word
+
+toWord = ([valueK, valueV]) =>
+	expectToken valueK, Typesets.anyWord..., Token.issue, Token.string, Token.char, Token.datatype, Token.logic
+
+	if valueK in Typesets.anyWord then valueV
+	else switch valueK
+		when Token.issue, Token.ref
+			assert valueV[0].match /^\D/
+			valueV
+		when Token.string then stringToWord valueV, /^[^\d/\\,()[\]{}"'#%$@:;\s][^/\\,()[\]{}"#%$@:;\s]*$/
+		when Token.char then charToWord valueV, /[^\d/\\,()[\]{}"'#%$@:;\s]/
+		when Token.datatype then Datatypes.tokenName valueV
+		else "#{valueV}"
+
+toIssue = (value) => do([valueK, valueV] = value) => switch valueK
+	when Token.string then stringToWord valueV, /^[^\s@#$%^()[\]{},\\;"<>/]+$/
+	when Token.char then charToWord valueV, /[^\s@#$%^()[\]{},\\;"<>/]/
+	else toWord
+
+toRef = (value) => do([valueK, valueV] = value) => switch valueK
+	when Token.string then stringToWord valueV, /^[^\s#$@",;=\\^/<>()[\]{}]+$/
+	when Token.char then charToWord valueV, /[^\s#$@",;=\\^/<>()[\]{}]/
+	else toWord
+
+_toString = (value) => do([valueK, valueV] = value) => switch valueK
+	when Token.block, Token.paren then valueV.map(form).join("")
+	else form value
+
+
+$to = (_, [target, value]) =>
+	do([targetK, targetV] = target) =>
+		datatype = if targetK is Token.datatype then targetV else targetK
+		[datatype, switch datatype
+			when Token.none then null
+			when Token.logic then toLogic value
+			when Token.word, Token.litWord, Token.getWord, Token.setWord then toWord value
+			when Token.issue then toIssue value
+			when Token.ref then toRef value
+			when Token.char then toChar value
+			when Token.string then _toString value
+			when Token.block, Token.paren then toBlock value
+			when Token.map then toMap value
+			# ...
+			else throw "todo!"
+		]
+
 
 ### Math (maybe) ###
 
@@ -366,16 +451,16 @@ $continue = (_, []) =>
 ### Strings ###
 
 # basic for now
+form = ([valueK, valueV]) =>
+	if valueK in [Typesets.anyString..., Typesets.anyWord..., Typesets.otherStringy...] then valueV
+	else switch valueK
+		when Token.none then "none"
+		when Token.logic, Token.integer, Token.float then "#{valueV}"
+		when Token.block, Token.paren then valueV.map(form).join(" ")
+		when Token.char then String.fromCharCode valueV
+		else throw "todo!"
+
 $form = (_, [value]) =>
-	form = ([valueK, valueV]) =>
-		if valueK in [Typesets.anyString..., Typesets.anyWord..., Typesets.otherStringy...] then valueV
-		else switch valueK
-			when Token.none then "none"
-			when Token.logic, Token.integer, Token.float then "#{valueV}"
-			when Token.block, Token.paren then valueV.map(form).join(" ")
-			when Token.char then String.fromCharCode valueV
-			else throw "todo!"
-	
 	Value.string form value
 
 #$mold
@@ -442,6 +527,7 @@ $extend = (_, [[mapK, mapV], key, value]) =>
 
 export default Intrinsics =
 	macro: new Intrinsic [PVal, PVal], $macro
+	"type?": new Intrinsic [PVal], $type_q
 	"type?.word": new Intrinsic [PVal], $type_q_word
 	"value?": new Intrinsic [PVal], $value_q
 	get: new Intrinsic [PVal], $get
@@ -469,6 +555,7 @@ export default Intrinsics =
 	"break": new Intrinsic [], $break
 	"break.return": new Intrinsic [PVal], $break_return
 	"continue": new Intrinsic [], $continue
+	to: new Intrinsic [PVal, PVal], $to
 	form: new Intrinsic [PVal], $form
 	"length?": new Intrinsic [PVal], $length_q
 	append: new Intrinsic [PVal, PVal], $append

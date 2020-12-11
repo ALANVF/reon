@@ -81,6 +81,12 @@ set: make intrinsic! [[
 	return: [any-type!]
 ]]
 
+reduce: make intrinsic! [[
+	"Returns a copy of a block, evaluating all expressions"
+	value   [any-type!]
+	return: [any-type!]
+]]
+
 compose: make intrinsic! [[
 	"Returns a copy of a block, evaluating only parens"
 	value [any-type!]

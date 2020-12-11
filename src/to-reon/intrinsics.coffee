@@ -68,6 +68,8 @@ $set = (env, [[wordK, word], value]) =>
 							env.set(word, value)
 					else
 						$set(env, word, value[1][i]) for word, i in words)
+	else
+		env.set(word, value)
 
 
 ### Evaluation ###

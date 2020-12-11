@@ -8,7 +8,7 @@
 - `any-function!` (macros are used instead)
 - `hash!`
 - `handle!`
-- `datatype!`/`typeset!`
+- `typeset!`
 - `unset!`
 - Construction syntax
 - Binary operators
@@ -56,7 +56,13 @@ macro: make intrinsic! [[
 	return: [macro!]
 ]]
 
-type?.word: make intrinsic! [[ ;@@ TODO: fix
+type?: make intrinsic! [[
+	"Returns the datatype of a value"
+	value   [any-type!]
+	return: [datatype!]
+]]
+
+type?.word: make intrinsic! [[
 	"Returns the datatype of a value as a word value (rather than a datatype)"
 	value   [any-type!]
 	return: [word!]
@@ -113,8 +119,8 @@ do.next: make intrinsic! [[
 
 pick: make intrinsic! [[
 	"Returns the series value at a given index"
-	series	 [series! map! pair! tuple! money! date! time!]
-	index 	 [scalar! any-string! any-word!]
+	series   [series! map! pair! tuple! money! date! time!]
+	index    [scalar! any-string! any-word!]
 	return:  [any-type!]
 ]]
 
@@ -138,23 +144,23 @@ not: make intrinsic! [[
 
 and: make intrinsic! [[
 	"Returns the first value ANDed with the second"
-	value1	[logic! integer! char! pair! tuple!]
-	value2	[logic! integer! char! pair! tuple!]
-	return:	[logic! integer! char! pair! tuple!]
+	value1  [logic! integer! char! pair! tuple!]
+	value2  [logic! integer! char! pair! tuple!]
+	return: [logic! integer! char! pair! tuple!]
 ]]
 
 or: make intrinsic! [[
 	"Returns the first value ORed with the second"
-	value1	[logic! integer! char! pair! tuple!]
-	value2	[logic! integer! char! pair! tuple!]
-	return:	[logic! integer! char! pair! tuple!]
+	value1  [logic! integer! char! pair! tuple!]
+	value2  [logic! integer! char! pair! tuple!]
+	return: [logic! integer! char! pair! tuple!]
 ]]
 
 xor: make intrinsic! [[
 	"Returns the first value exclusive ORed with the second"
-	value1	[logic! integer! char! pair! tuple!]
-	value2	[logic! integer! char! pair! tuple!]
-	return:	[logic! integer! char! pair! tuple!]
+	value1  [logic! integer! char! pair! tuple!]
+	value2  [logic! integer! char! pair! tuple!]
+	return: [logic! integer! char! pair! tuple!]
 ]]
 
 strict-equal?: make intrinsic! [[
@@ -196,7 +202,7 @@ while: make intrinsic! [[
 foreach: make intrinsic! [[
 	"Evaluates body for each value in a series"
 	'word   [word! block!]
-	data    [series! map!] ;@@ TODO: fix
+	data    [series! map!]
 	body    [block!]
 	return: [any-type!]
 ]]
@@ -248,5 +254,12 @@ extend: make intrinsic! [[
 	key     [scalar! any-string! any-word!]
 	value   [any-type!]
 	return: [any-type!]
+]]
+
+to: make intrinsic! [[
+	"Converts to a specified datatype"
+		type [any-type!] "The datatype or example value"
+		spec [any-type!] "The attributes of the new value"
+	]
 ]]
 ```

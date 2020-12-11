@@ -1,6 +1,6 @@
 import Token, {Value, nameOfToken} from "./to-reon/token.js"
 import Env from "./to-reon/env.js"
-import Intrinsics from "./to-reon/intrinsics.js"
+import Intrinsics, {setTokenizeFunction} from "./to-reon/intrinsics.js"
 import * as Eval from "./to-reon/eval.js"
 
 digits = "(?:\\d+(?:'\\d+)*)"
@@ -449,6 +449,14 @@ toValueToken = (token) =>
 		when Token.char                                     then normalizeStringy(value).charCodeAt 0
 		when Token.file, Token.string, Token.tag, Token.url then normalizeStringy(value)
 		else                                                value]
+
+
+tokenize = (input) =>
+	reader = new Reader input
+	until (trimSpace reader; reader.eof())
+		toValueToken(nextToken reader)
+
+setTokenizeFunction tokenize
 
 
 export default fromREON = (input) =>

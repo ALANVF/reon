@@ -2,6 +2,17 @@ import * as Util from "../util.js"
 import Token, {Datatypes, Value, Typesets, nameOfToken} from "./token.js"
 import {Param, ControlFlow, Macro, Intrinsic, isAnyMacro, evalNextExpr, evalTokens} from "./eval.js"
 
+
+### Tokenization ###
+
+tokenize = null
+
+export setTokenizeFunction = (fn) =>
+	tokenize = fn
+
+
+### Type-checking ###
+
 unexpectedToken = (tokenK) =>
 	throw new TypeError "Unexpected #{nameOfToken tokenK}!"
 
@@ -112,24 +123,23 @@ $compose_deep = (env, [value]) =>
 #$load = (env, [value])
 
 $do = (env, [value]) =>
-	switch value[0]
-		when Token.block, Token.paren then evalTokens env, value[1]
-		when Token.string             then throw "todo!"
+	do([valueK, valueV] = value) => switch valueK
+		when Token.block, Token.paren then evalTokens env, valueV
+		when Token.string             then evalTokens env, tokenize valueV
 		else                               value
 
 $do_next = (env, [value, [wordK, wordV]]) =>
 	expectToken wordK, Token.word, Token.litWord
 
+	do_next = (tokens) =>
+		res = evalNextExpr env, tokens
+		env.set wordV, Value.block tokens # FIX: this breaks when target word already exists (?)
+		res
+
 	do([valueK, valueV] = value) => switch valueK
-		when Token.block, Token.paren
-			tokens = [valueV...]
-			res = evalNextExpr env, tokens
-			env.set wordV, [valueK, tokens] # FIX: this breaks when target word already exists
-			res
-		when Token.string
-			throw "todo!"
-		else
-			value
+		when Token.block, Token.paren then do_next [valueV...]
+		when Token.string then do_next tokenize valueV
+		else value
 
 
 ### Accessing ###

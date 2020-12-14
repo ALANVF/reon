@@ -18,5 +18,6 @@
 			"x2": 7,
 			"y2": 8
 		}
-	]
+	],
+	"compare": [true, false, true]
 }

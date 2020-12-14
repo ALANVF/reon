@@ -237,7 +237,13 @@ $xor = (_, [left, right]) =>
 
 #$equal
 
-#$lesser
+$lesser_q = (_, [[leftK, leftV], [rightK, rightV]]) =>
+	Value.logic(switch leftK
+		when Token.integer, Token.hexa, Token.float, Token.char then switch rightK
+			when Token.integer, Token.hexa, Token.float, Token.char then leftV < rightV
+			else throw "todo!"
+		else throw "todo!")
+
 
 # basic for now
 $strict_equal_q = (_, [left, right]) =>
@@ -447,6 +453,40 @@ $to = (_, [target, value]) =>
 
 ### Math (maybe) ###
 
+Op = do =>
+	i = 0
+	add: i++
+	sub: i++
+
+math = ([leftK, leftV], [rightK, rightV], op) =>
+	expectToken leftK, Token.integer, Token.hexa, Token.float, Token.char, Token.money, Token.tuple, Token.time, Token.pair, Token.date
+	expectToken rightK, Token.integer, Token.hexa, Token.float, Token.char, Token.money, Token.tuple, Token.time, Token.pair, Token.date
+
+	defaultOp = (l, r) => switch op
+		when Op.add then l + r
+		when Op.sub then l - r
+		else throw "error!"
+
+	checkUnderflow = (value) =>
+		assert value >= 0
+		value
+
+	switch leftK
+		when Token.integer, Token.float, Token.hexa then switch rightK
+			when Token.integer, Token.hexa, Token.float, Token.char then [leftK, defaultOp(leftV, rightV)]
+			else throw "todo!"
+		when Token.char then Value.char checkUnderflow switch rightK
+			when Token.integer, Token.hexa, Token.char then defaultOp(leftV, rightV)
+			when Token.float then defaultOp(leftV, Math.floor rightV)
+			else throw "todo!"
+		else throw "todo!"
+
+$add = (_, [left, right]) =>
+	math left, right, Op.add
+
+$subtract = (_, [left, right]) =>
+	math left, right, Op.sub
+
 
 ### Strings ###
 
@@ -544,6 +584,7 @@ export default Intrinsics =
 	and: new Intrinsic [PVal, PVal], $and
 	or: new Intrinsic [PVal, PVal], $or
 	xor: new Intrinsic [PVal, PVal], $xor
+	"lesser?": new Intrinsic [PVal, PVal], $lesser_q
 	"strict-equal?": new Intrinsic [PVal, PVal], $strict_equal_q
 	"same?": new Intrinsic [PVal, PVal], $same_q
 	"if": new Intrinsic [PVal, PVal], $if
@@ -556,6 +597,8 @@ export default Intrinsics =
 	"break.return": new Intrinsic [PVal], $break_return
 	"continue": new Intrinsic [], $continue
 	to: new Intrinsic [PVal, PVal], $to
+	add: new Intrinsic [PVal, PVal], $add
+	subtract: new Intrinsic [PVal, PVal], $subtract
 	form: new Intrinsic [PVal], $form
 	"length?": new Intrinsic [PVal], $length_q
 	append: new Intrinsic [PVal, PVal], $append

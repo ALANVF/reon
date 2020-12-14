@@ -23,4 +23,10 @@ line: macro [begin end][
 			point 5 6
 			point 7 8)
 	]
+
+	compare: [
+		(lesser? 1 2)
+		(lesser? 2 1.0)
+		(lesser? #"a" #"b")
+	]
 )

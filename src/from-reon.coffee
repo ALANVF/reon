@@ -473,7 +473,7 @@ export default fromREON = (input) =>
 		env = new Env env: {Intrinsics...}
 
 		for name, kind of Token
-			env.set name, Datatypes.tokenType kind
+			env.set name + "!", Datatypes.tokenType kind
 
 		tokens = until (trimSpace reader; reader.eof())
 			toValueToken(nextToken reader)

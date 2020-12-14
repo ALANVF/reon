@@ -437,6 +437,8 @@ makeTokenValue = (indent, [kind, value]) =>
 		when Token.paren then throw new Error "Unexpected paren!"
 		when Token.datatype then throw new Error "Unexpected datatype!"
 		when Token.char then '"' + String.fromCharCode(value) + '"'
+		when Token.issue then '"#' + value + '"'
+		when Token.ref then '"@' + value + '"'
 		else '"' + value + '"'
 
 toValueToken = (token) =>

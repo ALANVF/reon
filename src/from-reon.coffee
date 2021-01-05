@@ -388,8 +388,8 @@ makeArray = (indent, values) =>
 makeString = ([kind, value]) =>
 	switch kind
 		when Token.file, Token.char, Token.string, Token.tag, Token.url then '"' + normalizeStringy(value) + '"'
-		when Token.issue then "#" + value
-		when Token.ref then "@" + value
+		when Token.issue then '"#' + value + '"'
+		when Token.ref then '"@' + value + '"'
 		when Token.money, Token.tuple, Token.email, Token.time, Token.pair, Token.date then '"' + value + '"'
 		else throw new TypeError "Unexpected #{nameOfToken kind}"
 

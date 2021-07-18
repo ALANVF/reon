@@ -1,0 +1,378 @@
+cojoin: macro [values res:][
+	res: copy ""
+
+	foreach value compose values [
+		append res form value
+	]
+
+	return res
+]
+
+rejoin: macro [values res:][
+	res: copy ""
+
+	foreach value reduce values [
+		append res form value
+	]
+
+	return res
+]
+
+
+sep: macro [pos string before-rule: after-rule: res:][
+	before-rule: "(?<=^^|[\s\[\]()}^"])"
+	after-rule: "(?=[\s\[\](){^";]|$)"
+	res: copy ""
+	
+	if or same? pos 'before same? pos 'around [
+		append res before-rule
+	]
+	
+	append res string
+
+	if or same? pos 'after same? pos 'around [
+		append res after-rule
+	]
+
+	return res
+]
+sep-before: macro [string][sep 'before string]
+sep-after: macro [string][sep 'after string]
+sep-around: macro [string][sep 'around string]
+
+
+any-word: "[A-Za-z_=\-?!*+\.`~&][\w=\-!?*+\.`~&']*"
+
+any-path: cojoin [
+	(any-word)
+	"(/("
+	(any-word)
+	"|\d+))*"
+]
+
+
+#(
+	name "REON"
+	scopeName "source.reon"
+	fileTypes ["reon"]
+	patterns [
+		#(include #comments)
+		#(include #logic)
+		#(include #strings)
+		#(include #values)
+		#(include #words)
+		#(include #errors)
+	]
+	repository #(
+		binary-base-sixteen #(
+			begin "(?:16)?#\{"
+			end "\}"
+			name "string.other.base16.reon"
+			patterns [
+				#(
+					match "\h+"
+					name "constant.character.binary.reon"
+				)
+			]
+		)
+		binary-base-sixtyfour #(
+			begin "64#\{"
+			end "\}"
+			name "string.other.base64.reon"
+		)
+		binary-base-two #(
+			begin "2#\{"
+			end "\}"
+			name "string.other.base2.reon"
+			patterns [
+				#(
+					match "[01]+"
+					name "constant.character.binary.reon"
+				)
+			]
+		)
+		block-blocks #(
+			begin "\["
+			beginCaptures #(
+				0 #(name "punctuation.section.embedded.begin.reon")
+			)
+			end "\]"
+			endCaptures #(
+				0 #(name "punctuation.section.embedded.end.reon")
+			)
+			name "meta.group.block.reon"
+			patterns [
+				#(include "$self")
+			]
+		)
+		block-parens #(
+			begin "#?\("
+			end "\)"
+			name "meta.group.paren.reon"
+			patterns [
+				#(include "$self")
+			]
+		)
+		blocks #(
+			patterns [
+				#(include #block-blocks)
+				#(include #block-parens)
+			]
+		)
+		character #(
+			match {#"(\^^(\((\h{2,4}|[a-zA-Z]{3,6})\)|.)|[^^"^^])"}
+			name "constant.other.character.reon"
+		)
+		character-inline #(
+			match "\^^(\(\h{2,4}\)|.)"
+			name "constant.character.reon"
+		)
+		comment-line #(
+			match ";.*$"
+			name "comment.line.semicolon.reon"
+		)
+		comment-multiline-block #(
+			begin "comment\s*\["
+			end "\]"
+			name "comment.block.reon"
+			patterns [
+				#(include #comment-multiline-block-nested)
+			]
+		)
+		comment-multiline-block-nested #(
+			begin "\["
+			end "\]"
+			name "comment.block.reon"
+			patterns [
+				#(include #comment-multiline-block-nested)
+			]
+		)
+		comment-multiline-string #(
+			begin "comment\s*\{"
+			end "\}"
+			name "comment.block.reon"
+			patterns [
+				#(include #comment-multiline-string-nested)
+			]
+		)
+		comment-multiline-string-nested #(
+			begin "\{"
+			end "\}"
+			name "comment.block.reon"
+			patterns [
+				#(include #comment-multiline-string-nested)
+			]
+		)
+		comments #(
+			patterns [
+				#(include #comment-line)
+				;#(include #comment-multiline-string)
+				;#(include #comment-multiline-block)
+			]
+		)
+		error-commas #(
+			match ","
+			name "invalid.illegal.comma.reon"
+		)
+		errors #(
+			patterns [
+				#(include #error-commas)
+			]
+		)
+		logic #(
+			match (sep-around "(true|false|on|off|yes|no|none)")
+			name "constant.language.logic.reon"
+		)
+		string-email #(
+			match {[^^\s:/\[\]\(\){}";]+@[^^\s:/\[\]\(\){}";]+}
+			name "string.email.reon"
+		)
+		string-ref #(
+			match {@[^^#$@",;=\\=/<>()\[\]{}]+}
+			name "string.ref.reon"
+		)
+		string-file #(
+			match {%[^^\s\[\]\(\){}";]*}
+			name "string.other.file.reon"
+		)
+		string-file-quoted #(
+			begin {%"}
+			end {"}
+			name "string.other.file.reon"
+			patterns [
+				#(
+					match "%\h{2}"
+					name "constant.character.hex.reon"
+				)
+			]
+		)
+		string-issue #(
+			match {#[^^\s\[\]\(\){}";]+}
+			name "string.other.issue.reon"
+		)
+		string-multiline #(
+			begin "\{"
+			end "\}"
+			name "string.other.reon"
+			patterns [
+				#(include #character-inline)
+				#(include #string-nested-multiline)
+			]
+		)
+		string-nested-multiline #(
+			begin "\{"
+			end "\}"
+			name "string.other.reon"
+			patterns [
+				#(include #string-nested-multiline)
+			]
+		)
+		string-quoted #(
+			begin {"}
+			end {"}
+			name "string.quoted.reon"
+			patterns [
+				#(include #character-inline)
+			]
+		)
+		string-tag #(
+			begin "<(?:/|%={0,2} |!)?(?:([-\w]+):)?([-\w:]+)"
+			captures #(
+				1 #(name "entity.other.namespace.xml")
+				2 #(name "entity.name.tag.xml")
+			)
+			end "(?:\s/| %)?>"
+			name "meta.tag.reon"
+			patterns [
+				#(
+					captures #(
+						1 #(name "entity.other.namespace.xml")
+						2 #(name "entity.other.attribute-name.xml")
+					)
+					match " (?:([-\w]+):)?([\w-]+)"
+				)
+				#(include #string-tag-double-quoted)
+				#(include #string-tag-single-quoted)
+			]
+		)
+		string-tag-double-quoted #(
+			begin {"}
+			end {"}
+			name "string.quoted.double.xml"
+		)
+		string-tag-single-quoted #(
+			begin "'"
+			end "'"
+			name "string.quoted.single.xml"
+		)
+		string-url #(
+			match {\b[A-Za-z][\w-]{1,15}:(/{0,3}[^^\s\[\]\(\){}";]+|//)}
+			name "string.other.url.reon"
+		)
+		strings #(
+			patterns [
+				#(include #character)
+				#(include #string-quoted)
+				#(include #string-multiline)
+				#(include #string-tag)
+				#(include #string-file-quoted)
+				#(include #string-file)
+				#(include #string-url)
+				#(include #string-email)
+				#(include #string-ref)
+				;#(include #binary-base-two)
+				;#(include #binary-base-sixty-four)
+				;#(include #binary-base-sixteen)
+				#(include #string-issue)
+			]
+		)
+		value-date #(
+			match "\d{1,4}\-(Jan(u(a(ry?)?)?)?|Feb(u(a(ry?)?)?)?|Mar(ch?)?|Apr(il?)?|May|June?|July?|Aug(u(st?)?)?|Sep(t(e(m(b(er?)?)?)?)?)?|Oct(o(b(er?)?)?)?|Nov(e(m(b(er?)?)?)?)?|Dec(e(m(b(er?)?)?)?)?|[1-9]|1[012])\-\d{1,4}([/T]\d{1,2}:\d{1,2}(:\d{1,2}(\.\d{1,5})?)?([+-]\d{1,2}[:]\d{1,2})?)?"
+			name "constant.other.date.reon"
+		)
+		value-money #(
+			match "(?<!\w)-?[a-zA-Z]*\$\d+(\.\d{2})?"
+			name "constant.numeric.money.reon"
+		)
+		value-number #(
+			match "(?<![\w=\-!?*+.`~&',])([-+]?((\d+[\d']*[.,]?[\d']*)|([.,]\d+[\d']*))([eE][+-]?\d+)?)(?=\W)"
+			name "constant.numeric.reon"
+		)
+		value-hex #(
+			match "(?<![\w=\-!?*+.`~&'])[\dA-F]+[\dA-F]*h(?=[\s\[\](){^";]|$)"
+			name "constant.numeric.hex.reon"
+		)
+		value-pair #(
+			match "(?<![\w=\-!?*+.`~&'])[-+]?\d+[xX][-+]?\d+"
+			name "constant.numeric.pair.reon"
+		)
+		value-time #(
+			match "([-+]?:\d{1,2}([aApP][mM])?)|([-+]?:\d{1,2}\.\d{0,9})|([-+]?\d{1,2}:\d{1,2}([aApP][mM])?)|([-+]?\d{1,2}:\d{1,2}\.\d{0,9})|([-+]?\d{1,2}:\d{1,2}:\d{1,2}(\.\d{0,9})?([aApP][mM])?)(?!\w)"
+			name "constant.numeric.time.reon"
+		)
+		value-tuple #(
+			match "(?:(?:25[0-5]|2[0-4]\d|[01]?\d{1,2})\.){2,9}(?:25[0-5]|2[0-4]\d|[01]?\d{1,2})\.?"
+			name "constant.rgb-value.reon"
+		)
+		values #(
+			patterns [
+				#(include #value-date)
+				#(include #value-time)
+				#(include #value-tuple)
+				#(include #value-number)
+				#(include #value-hex)
+				#(include #value-pair)
+				#(include #value-money)
+			]
+		)
+		word-datatype #(
+			match (cojoin ["(?<=^^|[\s\[\]()}^"/])" (any-path) "!(?![\w=\-!?*+\.`~&'])"])
+			name "entity.name.type.reon"
+		)
+		word-set #(
+			match (cojoin [(any-path) ":"])
+			name "variable.name.reon"
+		)
+		word-get #(
+			match (cojoin [":" (any-path)])
+			name "variable.other.getword.reon"
+		)
+		word-lit #(
+			match (cojoin ["(?<=^^|[\s\[\]()}^"/])'" (any-path)])
+			name "constant.other.litword.reon"
+		)
+		word-native #(
+			match {(?x)(?<=^^|[\s\[\]()^}"])(
+				not|while|copy|if|set|return|form|and|or|xor|append|pick|either|foreach|do
+				|compose|get|strict-equal\?|same\?|value\?|break|continue|exit|extend
+				|length\?|type\?|to|reduce|add|subtract|lesser\?
+				
+				#todo
+				|equal\?|load|comment
+
+				#variants
+				|type\?.word|(?:copy|compose)\.deep|do\.next|break\.return
+
+				#unique to reon
+				|macro
+			)(?=[\s\[\]()^{";]|$)}
+			name "storage.type.function.reon"
+		)
+		word-refine #(
+			match "/[A-Za-z=`~][A-Za-z0-9=\-\!\?\_\*\.`~]*"
+			name "constant.other.word.refinement.reon"
+		)
+		words #(
+			name "meta.word.reon"
+			patterns [
+				#(include #word-datatype)
+				#(include #word-set)
+				#(include #word-get)
+				#(include #word-lit)
+				#(include #word-native)
+				;#(include #word-refine)
+				#(include #word)
+			]
+		)
+	)
+)

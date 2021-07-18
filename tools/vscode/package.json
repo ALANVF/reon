@@ -1,0 +1,40 @@
+{
+	"name": "red-object-notation",
+	"displayName": "Red Object Notation",
+	"description": "Syntax Coloring",
+	"version": "0.1.0",
+	"publisher": "theangryepicbanana",
+	"engines": {
+		"vscode": "^1.30.0"
+	},
+	"categories": [
+		"Programming Languages",
+		"Other"
+	],
+	"contributes": {
+		"languages": [
+			{
+				"id": "reon",
+				"aliases": [
+					"REON",
+					"reon",
+					"red object notation"
+				],
+				"extensions": [
+					".reon"
+				],
+				"configuration": "./reon.configuration.json"
+			}
+		],
+		"grammars": [
+			{
+				"language": "reon",
+				"scopeName": "source.reon",
+				"path": "./syntaxes/REON.json"
+			}
+		]
+	},
+	"scripts": {
+		"compile-syntax": "reon-convert to-json syntaxes/REON.reon"
+	}
+}

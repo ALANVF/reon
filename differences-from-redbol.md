@@ -136,6 +136,13 @@ copy.deep: make intrinsic! [[
 	return: [any-type!]
 ]]
 
+copy.part: make intrinsic! [[
+	"Returns a copy of a value upto a certian point"
+	value   [series!]
+	length  [integer! pair!]
+	return: [series!]
+]]
+
 not: make intrinsic! [[
 	"Returns the logical complement of a value (truthy or falsy)"
 	value   [any-type!]
@@ -239,6 +246,13 @@ length?: make intrinsic! [[
 	"Gets the length of a series value"
 	series  [series! map! tuple! none!]
 	return: [integer! none!]
+]]
+
+skip: make intrinsic! [[
+	"Returns the series at an offset"
+	series  [series!]
+	offset  [integer!]
+	return: [series!]
 ]]
 
 append: make intrinsic! [[

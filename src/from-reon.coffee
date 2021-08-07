@@ -2,6 +2,7 @@ import Token, {Value, Datatypes, nameOfToken} from "./to-reon/token.js"
 import Env from "./to-reon/env.js"
 import Intrinsics, {setTokenizeFunction} from "./to-reon/intrinsics.js"
 import * as Eval from "./to-reon/eval.js"
+import STDLIB from "./to-reon/stdlib.js"
 
 digits = "(?:\\d+(?:'\\d+)*)"
 wordBase = /[^\d/\\,()[\]{}"'#%$@:;\s][^/\\,()[\]{}"#%$@:;\s]*/.source
@@ -82,7 +83,7 @@ literals =
 		)?
 	///
 	char:   /^#"((?:^\(\w+\)|\^.|[^"^]))"/
-	tag:    /^<[^=><[\](){}l^"\s](?:"[^"]*"|'[^']*'|[^>"']*)*>/
+	tag:    /^<[^=><[\](){}^"\s](?:"[^"]*"|'[^']*'|[^>"']*)*>/
 	string: /^"((?:\^.|[^"^]+)*)"/
 
 
@@ -432,7 +433,7 @@ makeTokenValue = (indent, [kind, value]) =>
 		when Token.map then makeObject indent, value
 		when Token.block then makeArray indent, value
 		when Token.integer, Token.float, Token.logic then "#{value}"
-		when Token.hexa then makeHexa value
+		when Token.hexa then "#{value.toString(10)}"
 		when Token.none then "null"
 		when Token.paren then throw new Error "Unexpected paren!"
 		when Token.datatype then throw new Error "Unexpected datatype!"
@@ -446,9 +447,9 @@ toValueToken = (token) =>
 	[kind, switch kind
 		when Token.block, Token.paren                       then value.map(toValueToken)
 		when Token.map                                      then pair.map(toValueToken) for pair in value
-		when Token.integer                                  then parseInt makeInteger(value.sign, value.number, value.exp), 10
-		when Token.hexa                                     then parseInt value
-		when Token.float                                    then parseFloat makeFloat(value.sign, value.ipart, value.fpart, value.exp)
+		when Token.integer                                  then Number.parseInt makeInteger(value.sign, value.number, value.exp), 10
+		when Token.hexa                                     then Number.parseInt value, 16
+		when Token.float                                    then Number.parseFloat makeFloat(value.sign, value.ipart, value.fpart, value.exp)
 		when Token.logic                                    then value.toLowerCase() in ["true", "yes", "on"]
 		when Token.none                                     then null
 		when Token.char                                     then normalizeStringy(value).charCodeAt 0
@@ -463,6 +464,13 @@ tokenize = (input) =>
 
 setTokenizeFunction tokenize
 
+evalREON = (env, input) =>
+	reader = new Reader input
+	tokens = until (trimSpace reader; reader.eof())
+		toValueToken(nextToken reader)
+	
+	Eval.evalTokens env, tokens 
+
 
 export default fromREON = (input) =>
 	reader = new Reader input
@@ -474,6 +482,14 @@ export default fromREON = (input) =>
 
 		for name, kind of Token
 			env.set name + "!", Datatypes.tokenType kind
+			env.set name + "?", new Eval.Macro ["value"], [], [
+				Value.word("same?"),
+				Value.word("type?"),
+				Value.word("value"),
+				Value.word(name + "!")
+			]
+		
+		evalREON env, STDLIB
 
 		tokens = until (trimSpace reader; reader.eof())
 			toValueToken(nextToken reader)

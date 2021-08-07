@@ -28,5 +28,7 @@ line: macro [begin end][
 		(lesser? 1 2)
 		(lesser? 2 1.0)
 		(lesser? #"a" #"b")
+		11h
+		(join-with "," [1 2 3])
 	]
 )

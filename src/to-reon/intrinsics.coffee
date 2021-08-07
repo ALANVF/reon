@@ -199,6 +199,22 @@ $copy_deep = (_, [value]) =>
 	
 	copy_deep value
 
+getPair = (pair) =>
+	p = pair.split /x/i
+	p[0] = +p[0]
+	p[1] = +p[1]
+	p
+
+$copy_part = (_, [[valueK, valueV], [lengthK, lengthV]]) =>
+	expectToken valueK, Typesets.series...
+	expectToken lengthK, Token.integer, Token.pair
+	
+	[valueK, switch lengthK
+		when Token.integer then valueV.slice 0, Math.max(0, lengthV)
+		else
+			[x, y] = getPair lengthV
+			valueV.slice Math.max(0, x), Math.max(0, y)]
+
 
 ### Logic ###
 
@@ -327,8 +343,10 @@ $foreach = (env, [[wordK, wordV], [seriesK, seriesV], [bodyK, bodyV]]) =>
 
 	if typeof word is "string"
 		for elem in elements
+			env.set(word, elem)
+			
 			try
-				res = evalTokens env.newInner([word]: elem), bodyV
+				res = evalTokens env, bodyV
 			catch e then switch
 				when e instanceof ControlFlow.Continue then continue
 				when e instanceof ControlFlow.Break then return e.value
@@ -337,9 +355,11 @@ $foreach = (env, [[wordK, wordV], [seriesK, seriesV], [bodyK, bodyV]]) =>
 		words = word
 		
 		for elems in Util.chunk(elements, words.length, Value.NONE)
+			for [word, elem] in Util.zip(words, elems)
+				env.set(word, elem)
+			
 			try
-				tmpEnv = env.newInner(pair for pair in Util.zip(words, elems))
-				res = evalTokens tmpEnv, bodyV
+				res = evalTokens env, bodyV
 			catch e then switch
 				when e instanceof ControlFlow.Continue then continue
 				when e instanceof ControlFlow.Break then return e.value
@@ -365,6 +385,35 @@ $continue = (_, []) =>
 
 
 ### Conversion ###
+
+toInteger = ([valueK, valueV]) =>
+	expectToken valueK, Token.integer, Token.float, Token.hexa, Token.char, Token.string, Token.ref..., Typesets.otherStringy...
+	
+	switch valueK
+		when Token.integer, Token.hexa, Token.char then valueV
+		when Token.float then Math.floor valueV
+		when Token.string, Token.ref, Token.issue then Number.parseInt valueV, 10
+		else throw "todo!"
+
+toFloat = ([valueK, valueV]) =>
+	expectToken valueK, Token.integer, Token.float, Token.hexa, Token.char, Token.string, Token.ref..., Typesets.otherStringy...
+	
+	switch valueK
+		when Token.integer, Token.float, Token.hexa, Token.char then valueV
+		when Token.string, Token.ref, Token.issue then Number.parseFloat valueV
+		else throw "todo!"
+
+toHexa = ([valueK, valueV]) =>
+	expectToken valueK, Token.integer, Token.float, Token.hexa, Token.char, Token.string, Token.ref..., Typesets.otherStringy...
+	
+	val = switch valueK
+		when Token.integer, Token.hexa, Token.char then valueV
+		when Token.float then Math.floor valueV
+		when Token.string, Token.ref, Token.issue then Number.parseInt valueV, 16
+		else throw "todo!"
+	
+	assert val >= 0, "hexa! value cannot be negative"
+	val
 
 toChar = ([valueK, valueV]) =>
 	expectToken valueK, Token.integer, Token.float, Token.hexa, Token.char, Typesets.anyString...
@@ -442,6 +491,9 @@ $to = (_, [target, value]) =>
 			when Token.word, Token.litWord, Token.getWord, Token.setWord then toWord value
 			when Token.issue then toIssue value
 			when Token.ref then toRef value
+			when Token.integer then toInteger value
+			when Token.float then toFloat value
+			when Token.hexa then toHexa value
 			when Token.char then toChar value
 			when Token.string then _toString value
 			when Token.block, Token.paren then toBlock value
@@ -516,6 +568,12 @@ $length_q = (_, [[seriesK, seriesV]]) =>
 		if seriesK isnt Token.tuple then seriesV.length
 		else throw "todo!")
 
+$skip = (_, [[seriesK, seriesV], [offsetK, offsetV]]) =>
+	expectToken seriesK, Typesets.series...
+	expectToken offsetK, Token.integer
+	
+	[seriesK, seriesV.slice offsetV]
+
 $append = (env, [series, value]) =>
 	expectValue series, Typesets.series...
 
@@ -580,6 +638,7 @@ export default Intrinsics =
 	pick: new Intrinsic [PVal, PVal], $pick
 	copy: new Intrinsic [PVal], $copy
 	"copy.deep": new Intrinsic [PVal], $copy_deep
+	"copy.part": new Intrinsic [PVal, PVal], $copy_part
 	not: new Intrinsic [PVal], $not
 	and: new Intrinsic [PVal, PVal], $and
 	or: new Intrinsic [PVal, PVal], $or
@@ -601,6 +660,7 @@ export default Intrinsics =
 	subtract: new Intrinsic [PVal, PVal], $subtract
 	form: new Intrinsic [PVal], $form
 	"length?": new Intrinsic [PVal], $length_q
+	skip: new Intrinsic [PVal, PVal], $skip
 	append: new Intrinsic [PVal, PVal], $append
 	#"insert-at": new Intrinsic [PVal, PVal, PVal], $insert_at
 	extend: new Intrinsic [PVal, PVal, PVal], $extend

@@ -32,5 +32,6 @@ line: macro [begin end][
 		(join-with "," [1 2 3])
 		(copy.part "abcde" 2)
 		(copy.part "abcdefg" 2x5)
+		(block? [])
 	]
 )

@@ -19,5 +19,5 @@
 			"y2": 8
 		}
 	],
-	"compare": [true, false, true, 17, "1,2,3", "ab", "cde"]
+	"compare": [true, false, true, 17, "1,2,3", "ab", "cde", true]
 }

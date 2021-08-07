@@ -482,7 +482,7 @@ export default fromREON = (input) =>
 
 		for name, kind of Token
 			env.set name + "!", Datatypes.tokenType kind
-			env.set name + "?", new Eval.Macro ["value"], [], [
+			env.set name + "?", new Eval.Macro [[Eval.Param.val, "value"]], [], [
 				Value.word("same?"),
 				Value.word("type?"),
 				Value.word("value"),

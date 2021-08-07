@@ -1,24 +1,3 @@
-cojoin: macro [values res:][
-	res: copy ""
-
-	foreach value compose values [
-		append res form value
-	]
-
-	return res
-]
-
-rejoin: macro [values res:][
-	res: copy ""
-
-	foreach value reduce values [
-		append res form value
-	]
-
-	return res
-]
-
-
 sep: macro [pos string before-rule: after-rule: res:][
 	before-rule: "(?<=^^|[\s\[\]()}^"])"
 	after-rule: "(?=[\s\[\](){^";]|$)"
@@ -43,10 +22,10 @@ sep-around: macro [string][sep 'around string]
 
 any-word: "[A-Za-z_=\-?!*+\.`~&][\w=\-!?*+\.`~&']*"
 
-any-path: cojoin [
-	(any-word)
+any-path: rejoin [
+	any-word
 	"(/("
-	(any-word)
+	any-word
 	"|\d+))*"
 ]
 
@@ -326,35 +305,42 @@ any-path: cojoin [
 			]
 		)
 		word-datatype #(
-			match (cojoin ["(?<=^^|[\s\[\]()}^"/])" (any-path) "!(?![\w=\-!?*+\.`~&'])"])
+			match (rejoin ["(?<=^^|[\s\[\]()}^"/])" any-path "!(?![\w=\-!?*+\.`~&'])"])
 			name "entity.name.type.reon"
 		)
 		word-set #(
-			match (cojoin [(any-path) ":"])
+			match (rejoin [any-path ":"])
 			name "variable.name.reon"
 		)
 		word-get #(
-			match (cojoin [":" (any-path)])
+			match (rejoin [":" any-path])
 			name "variable.other.getword.reon"
 		)
 		word-lit #(
-			match (cojoin ["(?<=^^|[\s\[\]()}^"/])'" (any-path)])
+			match (rejoin ["(?<=^^|[\s\[\]()}^"/])'" any-path])
 			name "constant.other.litword.reon"
 		)
 		word-native #(
 			match {(?x)(?<=^^|[\s\[\]()^}"])(
 				not|while|copy|if|set|return|form|and|or|xor|append|pick|either|foreach|do
 				|compose|get|strict-equal\?|same\?|value\?|break|continue|exit|extend
-				|length\?|type\?|to|reduce|add|subtract|lesser\?
+				|length\?|type\?|to|reduce|add|subtract|lesser\?|skip
+				
+				#type testing
+				|(?:datatype|none|logic|word|lit-word|get-word|set-word|integer|hexa|float|money|tuple|issue|ref|email|url|file|time|pair|date|char|tag|string|block|map|paren)\?
 				
 				#todo
 				|equal\?|load|comment
 
 				#variants
-				|type\?.word|(?:copy|compose)\.deep|do\.next|break\.return
+				|type\?.word|copy\.(?:part|deep)|compose\.deep|do\.next|break\.return
 
 				#unique to reon
 				|macro
+				
+				#stdlib
+				|any|all|case(?:\.all)?|switch(?:\.default)?|greater\?|max|min|next
+				|rejoin|quote|empty\?|single\?|first|last|join-with
 			)(?=[\s\[\]()^{";]|$)}
 			name "storage.type.function.reon"
 		)

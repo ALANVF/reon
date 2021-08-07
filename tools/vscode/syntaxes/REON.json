@@ -374,7 +374,7 @@
 			"name": "constant.other.litword.reon"
 		},
 		"word-native": {
-			"match": "(?x)(?<=^|[\\s\\[\\]()}\"])(\n\t\t\t\tnot|while|copy|if|set|return|form|and|or|xor|append|pick|either|foreach|do\n\t\t\t\t|compose|get|strict-equal\\?|same\\?|value\\?|break|continue|exit|extend\n\t\t\t\t|length\\?|type\\?|to|reduce|add|subtract|lesser\\?\n\t\t\t\t\n\t\t\t\t#todo\n\t\t\t\t|equal\\?|load|comment\n\n\t\t\t\t#variants\n\t\t\t\t|type\\?.word|(?:copy|compose)\\.deep|do\\.next|break\\.return\n\n\t\t\t\t#unique to reon\n\t\t\t\t|macro\n\t\t\t)(?=[\\s\\[\\](){\";]|$)",
+			"match": "(?x)(?<=^|[\\s\\[\\]()}\"])(\n\t\t\t\tnot|while|copy|if|set|return|form|and|or|xor|append|pick|either|foreach|do\n\t\t\t\t|compose|get|strict-equal\\?|same\\?|value\\?|break|continue|exit|extend\n\t\t\t\t|length\\?|type\\?|to|reduce|add|subtract|lesser\\?|skip\n\t\t\t\t\n\t\t\t\t#type testing\n\t\t\t\t|(?:datatype|none|logic|word|lit-word|get-word|set-word|integer|hexa|float|money|tuple|issue|ref|email|url|file|time|pair|date|char|tag|string|block|map|paren)\\?\n\t\t\t\t\n\t\t\t\t#todo\n\t\t\t\t|equal\\?|load|comment\n\n\t\t\t\t#variants\n\t\t\t\t|type\\?.word|copy\\.(?:part|deep)|compose\\.deep|do\\.next|break\\.return\n\n\t\t\t\t#unique to reon\n\t\t\t\t|macro\n\t\t\t\t\n\t\t\t\t#stdlib\n\t\t\t\t|any|all|case(?:\\.all)?|switch(?:\\.default)?|greater\\?|max|min|next\n\t\t\t\t|rejoin|quote|empty\\?|single\\?|first|last|join-with\n\t\t\t)(?=[\\s\\[\\](){\";]|$)",
 			"name": "storage.type.function.reon"
 		},
 		"word-refine": {

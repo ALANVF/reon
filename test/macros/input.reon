@@ -30,5 +30,7 @@ line: macro [begin end][
 		(lesser? #"a" #"b")
 		11h
 		(join-with "," [1 2 3])
+		(copy.part "abcde" 2)
+		(copy.part "abcdefg" 2x5)
 	]
 )

@@ -1,8 +1,8 @@
-import Token, {Value, Datatypes, nameOfToken} from "./to-reon/token.js"
-import Env from "./to-reon/env.js"
-import Intrinsics, {setTokenizeFunction} from "./to-reon/intrinsics.js"
-import * as Eval from "./to-reon/eval.js"
-import STDLIB from "./to-reon/stdlib.js"
+import Token, {Value, Datatypes, nameOfToken} from "./from-reon/token.js"
+import Env from "./from-reon/env.js"
+import Intrinsics, {setTokenizeFunction} from "./from-reon/intrinsics.js"
+import * as Eval from "./from-reon/eval.js"
+import STDLIB from "./from-reon/stdlib.js"
 
 digits = "(?:\\d+(?:'\\d+)*)"
 wordBase = /[^\d/\\,()[\]{}"'#%$@:;\s][^/\\,()[\]{}"#%$@:;\s]*/.source

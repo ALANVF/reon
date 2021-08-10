@@ -141,6 +141,16 @@ class Reader
 Object.fromEntries ?= (arr) ->
 	Object.assign {}, ...Array.from(arr, ([k, v]) => [k]: v)
 
+# meh
+String.prototype.replaceAll ?= (find, repl) ->
+	if typeof find is "string"
+		if @includes find
+			@replace new RegExp(String.raw(raw: find), "gm"), repl # lazy
+		else
+			@
+	else
+		find = new RegExp find.source, find.flags + (if find.flags.includes("g") then "" else "g")
+		@replace find, repl
 
 trimSpace = (reader) =>
 	if reader.match /^\s+/m
@@ -278,71 +288,117 @@ nextToken = (reader) =>
 	nextValue(reader, true)
 
 
-normalizeStringy = (string) =>
+normalizeStringy = (string, isEval = false) =>
 	out = ""
 
-	while string.length > 0
-		str = string.toLowerCase()
-		offset = switch str[..1]
-			when "^^"  then out += "^";     2
-			when '^"'  then out += '\\"';   2
-			when "^-"  then out += "\\t";   2
-			when "^/"  then out += "\\n";   2
-			when "^{"  then out += "{";     2
-			when "^}"  then out += "}";     2
-			when "^@"  then out += "\\0";   2
-			when "^["  then out += "\\x1B"; 2
-			when "^\\" then out += "\\x1C"; 2
-			when "^]"  then out += "\\x1D"; 2
-			when "^_"  then out += "\\x1F"; 2
-			when "^~"  then out += "\\x7F"; 2
-			when "^("
-				switch
-					when str.startsWith "^(tab)"  then out += "\\t";   6
-					when str.startsWith "^(line)" then out += "\\n";   7
-					when str.startsWith "^(null)" then out += "\\0";   7
-					when str.startsWith "^(back)" then out += "\\b";   7
-					when str.startsWith "^(page)" then out += "\\x0C"; 7
-					when str.startsWith "^(esc)"  then out += "\\x1B"; 6
-					when str.startsWith "^(del)"  then out += "\\x7F"; 6
-					else                               throw new Error "Invalid char!"
-			when "\r\n"
-				out += "\\r\\n"
-				2
-			else
-				switch
-					when string[0] is "\\"
-						out += "\\\\"
-						1
-					when string[0] is "\n"
-						out += "\\n"
-						1
-					when string[0] is "\r"
-						out += "\\r"
-						1
-					when string[0] is "\t"
-						out += "\\t"
-						1
-					when string[0] is '"'
-						out += '\\"'
-						1
-					when string.length < 2
-						out += string
-						string.length
-					when string.match /^\^[A-Z]/i
-						char = (string.toUpperCase().charCodeAt(1) - 64).toString 16
-						out += "\\u00" + "0".repeat(2 - char.length) + char
-						2
-					when match = string.match /^\^\(([\dA-F]{2})\)$/i
-						out += "\\u" + "0".repeat(4 - match[1].length) + match[1]
-						4
-					when string[0] is "^"
-						throw new Error "Error in string near `#{string[..5]}`!"
-					else
-						out += string[0]
-						1
-		
-		string = string[offset..]
+	if isEval
+		while string.length > 0
+			offset = switch string[..1]
+				when "^^"  then out += "^^";   2
+				when '^"'  then out += '"';    2
+				when "^-"  then out += "\t";   2
+				when "^/"  then out += "\n";   2
+				when "^{"  then out += "{";    2
+				when "^}"  then out += "}";    2
+				when "^@"  then out += "\0";   2
+				when "^["  then out += "\x1B"; 2
+				when "^\\" then out += "\x1C"; 2
+				when "^]"  then out += "\x1D"; 2
+				when "^_"  then out += "\x1F"; 2
+				when "^~"  then out += "\x7F"; 2
+				when "^("
+					str = string.toLowerCase()
+					switch
+						when str.startsWith "^(tab)"  then out += "\t";   6
+						when str.startsWith "^(line)" then out += "\n";   7
+						when str.startsWith "^(null)" then out += "\0";   7
+						when str.startsWith "^(back)" then out += "\b";   7
+						when str.startsWith "^(page)" then out += "\x0C"; 7
+						when str.startsWith "^(esc)"  then out += "\x1B"; 6
+						when str.startsWith "^(del)"  then out += "\x7F"; 6
+						else                               throw new Error "Invalid char!"
+				else
+					switch
+						when string.length < 2
+							out += string
+							string.length
+						when string.match /^\^[A-Z]/i
+							out += String.fromCharCode(string.toUpperCase().charCodeAt(1) - 64)
+							2
+						when match = string.match /^\^\(([\dA-F]{2})\)$/i
+							out += String.fromCharCode Number.parseInt(match[1], 16)
+							4
+						when string[0] is "^"
+							throw new Error "Error in string near `#{string[..5]}`!"
+						else
+							out += string[0]
+							1
+			
+			string = string[offset..]
+	else
+		# ew, code duplication
+		while string.length > 0
+			offset = switch string[..1]
+				when "^^"  then out += "^";     2
+				when '^"'  then out += '\\"';   2
+				when "^-"  then out += "\\t";   2
+				when "^/"  then out += "\\n";   2
+				when "^{"  then out += "{";     2
+				when "^}"  then out += "}";     2
+				when "^@"  then out += "\\0";   2
+				when "^["  then out += "\\x1B"; 2
+				when "^\\" then out += "\\x1C"; 2
+				when "^]"  then out += "\\x1D"; 2
+				when "^_"  then out += "\\x1F"; 2
+				when "^~"  then out += "\\x7F"; 2
+				when "^("
+					str = string.toLowerCase()
+					switch
+						when str.startsWith "^(tab)"  then out += "\\t";   6
+						when str.startsWith "^(line)" then out += "\\n";   7
+						when str.startsWith "^(null)" then out += "\\0";   7
+						when str.startsWith "^(back)" then out += "\\b";   7
+						when str.startsWith "^(page)" then out += "\\x0C"; 7
+						when str.startsWith "^(esc)"  then out += "\\x1B"; 6
+						when str.startsWith "^(del)"  then out += "\\x7F"; 6
+						else                               throw new Error "Invalid char!"
+				when "\r\n"
+					out += "\\r\\n"
+					2
+				else
+					switch
+						when string[0] is "\\"
+							out += "\\\\"
+							1
+						when string[0] is "\n"
+							out += "\\n"
+							1
+						when string[0] is "\r"
+							out += "\\r"
+							1
+						when string[0] is "\t"
+							out += "\\t"
+							1
+						when string[0] is '"'
+							out += '\\"'
+							1
+						when string.length < 2
+							out += string
+							string.length
+						when string.match /^\^[A-Z]/i
+							char = (string.toUpperCase().charCodeAt(1) - 64).toString 16
+							out += "\\u00" + "0".repeat(2 - char.length) + char
+							2
+						when match = string.match /^\^\(([\dA-F]{2})\)$/i
+							out += "\\u" + "0".repeat(4 - match[1].length) + match[1]
+							4
+						when string[0] is "^"
+							throw new Error "Error in string near `#{string[..5]}`!"
+						else
+							out += string[0]
+							1
+			
+			string = string[offset..]
 	
 	out
 
@@ -440,20 +496,22 @@ makeTokenValue = (indent, [kind, value]) =>
 		when Token.char then '"' + String.fromCharCode(value) + '"'
 		when Token.issue then '"#' + value + '"'
 		when Token.ref then '"@' + value + '"'
+		when Token.string then '"' + normalizeStringy(value) + '"'
 		else '"' + value + '"'
 
 toValueToken = (token) =>
 	[kind, value] = token
 	[kind, switch kind
-		when Token.block, Token.paren                       then value.map(toValueToken)
-		when Token.map                                      then pair.map(toValueToken) for pair in value
-		when Token.integer                                  then Number.parseInt makeInteger(value.sign, value.number, value.exp), 10
-		when Token.hexa                                     then Number.parseInt value, 16
-		when Token.float                                    then Number.parseFloat makeFloat(value.sign, value.ipart, value.fpart, value.exp)
-		when Token.logic                                    then value.toLowerCase() in ["true", "yes", "on"]
-		when Token.none                                     then null
-		when Token.char                                     then normalizeStringy(value).charCodeAt 0
-		when Token.file, Token.string, Token.tag, Token.url then normalizeStringy(value)
+		when Token.block, Token.paren         then value.map(toValueToken)
+		when Token.map                        then pair.map(toValueToken) for pair in value
+		when Token.integer                    then Number.parseInt makeInteger(value.sign, value.number, value.exp), 10
+		when Token.hexa                       then Number.parseInt value, 16
+		when Token.float                      then Number.parseFloat makeFloat(value.sign, value.ipart, value.fpart, value.exp)
+		when Token.logic                      then value.toLowerCase() in ["true", "yes", "on"]
+		when Token.none                       then null
+		when Token.char                       then normalizeStringy(value).charCodeAt 0
+		when Token.string                     then normalizeStringy(value, true)
+		when Token.file, Token.tag, Token.url then normalizeStringy(value)
 		else                                                value]
 
 

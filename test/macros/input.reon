@@ -28,10 +28,31 @@ line: macro [begin end][
 		(lesser? 1 2)
 		(lesser? 2 1.0)
 		(lesser? #"a" #"b")
+	]
+	
+	misc: [
 		11h
 		(join-with "," [1 2 3])
 		(copy.part "abcde" 2)
 		(copy.part "abcdefg" 2x5)
 		(block? [])
+		{^"
+			add 1 2
+		^"}
+		(do {^" ^"
+			add 1 2
+		})
+		(do {^" ^" {^" ^" ^^
+			add 1 2
+		}})
+		"^"
+			add 1 2
+		^""
+		(do "
+			add 1 2
+		")
+		(do "^"
+			add 1 2
+		^"")
 	]
 )

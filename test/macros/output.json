@@ -19,5 +19,18 @@
 			"y2": 8
 		}
 	],
-	"compare": [true, false, true, 17, "1,2,3", "ab", "cde", true]
+	"compare": [true, false, true],
+	"misc": [
+		17,
+		"1,2,3",
+		"ab",
+		"cde",
+		true,
+		"\"\n\t\t\tadd 1 2\n\t\t\"",
+		3,
+		"\" \" ^\n\t\t\tadd 1 2\n\t\t",
+		"\"\n\t\t\tadd 1 2\n\t\t\"",
+		3,
+		"\n\t\t\tadd 1 2\n\t\t"
+	]
 }

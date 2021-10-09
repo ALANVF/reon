@@ -50,7 +50,7 @@ Note: Because REON does not support refinements, `.` is used in place of `/`.
 
 ```red
 macro: make intrinsic! [[
-	Defines a macro with a given spec and body"
+	"Defines a macro with a given spec and body"
 	spec    [block!] "Parameters"
 	body    [block!] "Code body"
 	return: [macro!]
